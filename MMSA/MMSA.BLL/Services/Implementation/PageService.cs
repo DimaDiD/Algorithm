@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using MMSA.BLL.Dtos;
 using MMSA.BLL.Services.Interfaces;
 using MMSA.DAL.Entities;
@@ -29,7 +30,21 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create page method. Message: {exception.Message}");
+                throw new Exception($"Error in CreateAsync page method. Message: {exception.Message}");
+            }
+        }
+
+        public async Task<List<PageDTO>> GetAllAsync()
+        {
+            try
+            {
+                var dbPages = await _pageRepository.GetAllAsync(include: x => x.Include(c => c.PageContents));
+                var pages = _mapper.Map<List<PageDTO>>(dbPages);
+                return pages;
+            }
+            catch (Exception exception)
+            {
+                throw new Exception($"Error in create GetAllAsync page method. Message: {exception.Message}");
             }
         }
     }

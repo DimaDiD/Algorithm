@@ -10,6 +10,6 @@
 
         public int? TextId { get; set; }
 
-        public List<PageDTO> PageContens { get; set; }  = new List<PageDTO>();
+        public List<PageContentDTO> PageContents { get; set; }  = new List<PageContentDTO>();
     }
 }

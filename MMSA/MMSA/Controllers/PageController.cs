@@ -20,5 +20,12 @@ namespace MMSA.Controllers
             var newPage = await _pageService.CreateAsync(page);
             return Ok(newPage);
         }
+
+        [HttpPost("GetAll")]
+        public async Task<IActionResult> GetAll()
+        {
+            var pages = await _pageService.GetAllAsync();
+            return Ok(pages);
+        }
     }
 }
