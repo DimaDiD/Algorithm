@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace MMSA.DAL.Entities;
+﻿namespace MMSA.DAL.Entities;
 
 public partial class Page
 {

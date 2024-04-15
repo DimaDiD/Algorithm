@@ -14,13 +14,13 @@ builder.Services.AddDbContext<AlgorithmDataContext>(options =>
 
 builder.Services.AddTransient(typeof(AlgorithmDataContext));
 builder.Services.AddScoped<IPageRepository, PageRepository>();
+builder.Services.AddScoped<IPageContentRepository, PageContentRepository>();
+builder.Services.AddScoped<IPageService, PageService>();
 
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(); 
-builder.Services.AddScoped<ICalculationService, CalculationService>();
-builder.Services.AddScoped<IExcelService, ExcelService>();
 
 builder.Services.AddControllers().AddJsonOptions(x =>
 {
@@ -32,8 +32,9 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
     options.UseMemberCasing();
 });
 
-var app = builder.Build();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+var app = builder.Build();
 app.UseRouting();
 app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
