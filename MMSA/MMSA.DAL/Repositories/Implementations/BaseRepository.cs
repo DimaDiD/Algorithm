@@ -8,9 +8,9 @@ namespace MMSA.DAL.Repositories.Implementations
 {
     public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
     {
-        protected ApplicationDbContext _dataContext { get; set; }
+        protected AlgorithmDataContext _dataContext { get; set; }
 
-        public BaseRepository(ApplicationDbContext dataContext)
+        public BaseRepository(AlgorithmDataContext dataContext)
         {
             _dataContext = dataContext;
             _dataContext.Database.SetCommandTimeout(300);

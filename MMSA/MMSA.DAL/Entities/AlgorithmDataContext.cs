@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace MMSA.DAL.Models.EFCore.DataDb;
+namespace MMSA.DAL.Entities;
 
 public partial class AlgorithmDataContext : DbContext
 {

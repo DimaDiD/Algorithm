@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace MMSA.DAL.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
+    [DbContext(typeof(AlgorithmDataContext))]
     [Migration("20240414124550_Test")]
     partial class Test
     {

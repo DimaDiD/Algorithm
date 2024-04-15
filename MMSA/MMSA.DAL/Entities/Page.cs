@@ -1,16 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
 
-namespace MMSA.DAL.Entities
+namespace MMSA.DAL.Entities;
+
+public partial class Page
 {
-    public class Page
-    {
-        [Key]
-        public int Id { get; set; } = 0;
+    public int Id { get; set; }
 
-        public int PageId { get; set; }
+    public int PageId { get; set; }
 
-        public string PageName { get; set; }
+    public string PageName { get; set; } = null!;
 
-        public int TextId { get; set; }
-    }
+    public int? TextId { get; set; }
+
+    public virtual ICollection<PageContent> PageContents { get; set; } = new List<PageContent>();
 }

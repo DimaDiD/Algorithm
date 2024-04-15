@@ -5,7 +5,7 @@ namespace MMSA.DAL.Repositories.Implementations
 {
     public class PageRepository : BaseRepository<Page>, IPageRepository
     {
-        public PageRepository(ApplicationDbContext dataContext) : base(dataContext)
+        public PageRepository(AlgorithmDataContext dataContext) : base(dataContext)
         {
 
         }

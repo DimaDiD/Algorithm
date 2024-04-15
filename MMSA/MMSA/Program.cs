@@ -8,19 +8,29 @@ using MMSA.DAL.Repositories.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<AlgorithmDataContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
-builder.Services.AddTransient(typeof(ApplicationDbContext));
+builder.Services.AddTransient(typeof(AlgorithmDataContext));
 builder.Services.AddScoped<IPageRepository, PageRepository>();
 
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(); 
 builder.Services.AddScoped<ICalculationService, CalculationService>();
 builder.Services.AddScoped<IExcelService, ExcelService>();
+
+builder.Services.AddControllers().AddJsonOptions(x =>
+{
+    x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
+builder.Services.AddControllers().AddNewtonsoftJson(options =>
+{
+    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+    options.UseMemberCasing();
+});
 
 var app = builder.Build();
 

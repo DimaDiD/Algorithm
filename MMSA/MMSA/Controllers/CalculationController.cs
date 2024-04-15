@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MMSA.BLL.Services.Interfaces;
 using MMSA.DAL.Dtos;
 using MMSA.DAL.Entities;
@@ -12,10 +13,10 @@ namespace MMSA.Controllers
     {
         private readonly ICalculationService _calculationService;
         private readonly IExcelService _excelService;
-        private readonly ApplicationDbContext _context;
+        private readonly AlgorithmDataContext _context;
         private readonly IPageRepository _pageRepository;
 
-        public CalculationController(ICalculationService calculationService, IExcelService excelService, ApplicationDbContext context, IPageRepository pageRepository)
+        public CalculationController(ICalculationService calculationService, IExcelService excelService, AlgorithmDataContext context, IPageRepository pageRepository)
         {
             _context = context;
             _calculationService = calculationService;
@@ -56,9 +57,9 @@ namespace MMSA.Controllers
         }
 
         [HttpGet("GetUsers")]
-        public async Task<ActionResult<List<User>>> Get()
+        public async Task<ActionResult<List<Page>>> Get()
         {
-            var a = await _pageRepository.GetAllAsync();
+            var a = await _pageRepository.GetAllAsync(include: x => x.Include(c => c.PageContents));
             return Ok(a);
         }
     }

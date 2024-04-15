@@ -12,4 +12,6 @@ public partial class Page
     public string PageName { get; set; } = null!;
 
     public int? TextId { get; set; }
+
+    public virtual ICollection<PageContent> PageContents { get; set; } = new List<PageContent>();
 }
