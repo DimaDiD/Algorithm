@@ -9,11 +9,11 @@ public partial class PageContent
 
     public string? Text { get; set; }
 
-    public int PageId { get; set; }
+    public int SubPageId { get; set; }
 
     public string? TextType { get; set; }
 
     public string? CodeType { get; set; }
 
-    public virtual Page Page { get; set; } = null!;
+    public int? ContentLocation { get; set; }
 }

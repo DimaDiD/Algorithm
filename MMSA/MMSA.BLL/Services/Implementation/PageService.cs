@@ -38,9 +38,8 @@ namespace MMSA.BLL.Services.Implementation
         {
             try
             {
-                var dbPages = await _pageRepository.GetAllAsync(include: x => x.Include(c => c.PageContents));
-                var pages = _mapper.Map<List<PageDTO>>(dbPages);
-                return pages;
+                var dbPages = await _pageRepository.GetAllAsync(include: x => x.Include(c => c.SubPages));
+                return _mapper.Map<List<PageDTO>>(dbPages);
             }
             catch (Exception exception)
             {
