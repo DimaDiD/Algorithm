@@ -9,6 +9,7 @@ namespace MMSA.BLL.Mapping
         public Mapper()
         {
             CreateMap<Page, PageDTO>().ReverseMap();
+            CreateMap<SubPage, SubPageDTO>().ReverseMap();
             CreateMap<PageContent, PageContentDTO>().ReverseMap();
         }
     }

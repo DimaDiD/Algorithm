@@ -34,7 +34,37 @@ namespace MMSA.BLL.Services.Implementation
             }
         }
 
-        public async Task<List<PageDTO>> GetAllAsync()
+        public async Task<List<PageDTO>> GetMenuItemsAsync()
+        {
+            try
+            {
+                var dbPages = await _pageRepository.GetAllAsync(include: x => x.Include(c => c.SubPages));
+                return _mapper.Map<List<PageDTO>>(dbPages);
+            }
+            catch (Exception exception)
+            {
+                throw new Exception($"Error in create GetAllAsync page method. Message: {exception.Message}");
+            }
+        }
+
+        public async Task CreatePageAsync(string pageName)
+        {
+            try
+            {
+                var newPage = new Page
+                {
+                    PageName = pageName,
+                };
+
+                await _pageRepository.InsertAsync(newPage, true);                
+            }
+            catch (Exception exception)
+            {
+                throw new Exception($"Error in create GetAllAsync page method. Message: {exception.Message}");
+            }
+        }
+
+        public async Task<List<PageDTO>> GetContentAsync()
         {
             try
             {

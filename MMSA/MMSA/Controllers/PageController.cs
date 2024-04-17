@@ -21,10 +21,10 @@ namespace MMSA.Controllers
             return Ok(newPage);
         }
 
-        [HttpPost("GetAll")]
-        public async Task<IActionResult> GetAll()
+        [HttpGet("GetMenuItems")]
+        public async Task<IActionResult> GetMenuItems()
         {
-            var pages = await _pageService.GetAllAsync();
+            var pages = await _pageService.GetMenuItemsAsync();
             return Ok(pages);
         }
     }
