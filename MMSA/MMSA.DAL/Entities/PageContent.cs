@@ -16,4 +16,6 @@ public partial class PageContent
     public string? CodeType { get; set; }
 
     public int? ContentLocation { get; set; }
+
+    public int? PageId { get; set; }
 }

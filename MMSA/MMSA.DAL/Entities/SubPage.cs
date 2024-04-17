@@ -1,4 +1,7 @@
-﻿namespace MMSA.DAL.Entities;
+﻿using System;
+using System.Collections.Generic;
+
+namespace MMSA.DAL.Entities;
 
 public partial class SubPage
 {
