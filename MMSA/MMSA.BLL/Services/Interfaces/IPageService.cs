@@ -5,7 +5,7 @@ namespace MMSA.BLL.Services.Interfaces
 {
     public interface IPageService
     {
-        Task<PageDTO> CreateAsync(PageDTO page);
+        Task CreatePageAsync(string pageName);
         Task<List<PageDTO>> GetMenuItemsAsync();
     }
 }

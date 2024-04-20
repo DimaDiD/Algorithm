@@ -14,8 +14,11 @@ builder.Services.AddDbContext<AlgorithmDataContext>(options =>
 
 builder.Services.AddTransient(typeof(AlgorithmDataContext));
 builder.Services.AddScoped<IPageRepository, PageRepository>();
-builder.Services.AddScoped<IPageContentRepository, PageContentRepository>();
 builder.Services.AddScoped<IPageService, PageService>();
+builder.Services.AddScoped<IPageContentRepository, PageContentRepository>();
+builder.Services.AddScoped<IPageContentService, PageContentService>();
+builder.Services.AddScoped<ISubPageRepository, SubPageRepository>();
+builder.Services.AddScoped<ISubPageService, SubPageService>();
 
 
 builder.Services.AddControllers();

@@ -18,22 +18,6 @@ namespace MMSA.BLL.Services.Implementation
             _mapper = mapper;
         }
 
-        public async Task<PageDTO> CreateAsync(PageDTO page)
-        {
-            try
-            {
-                var newPage = _mapper.Map<Page>(page);
-
-                await _pageRepository.InsertAsync(newPage, true);
-
-                return page;
-            }
-            catch (Exception exception)
-            {
-                throw new Exception($"Error in CreateAsync page method. Message: {exception.Message}");
-            }
-        }
-
         public async Task<List<PageDTO>> GetMenuItemsAsync()
         {
             try

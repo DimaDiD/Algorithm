@@ -15,10 +15,10 @@ namespace MMSA.Controllers
         }
 
         [HttpPost("CreatePage")]
-        public async Task<IActionResult> CreatePage(PageDTO page)
+        public async Task<IActionResult> CreatePage(string pageName)
         {
-            var newPage = await _pageService.CreateAsync(page);
-            return Ok(newPage);
+            await _pageService.CreatePageAsync(pageName);
+            return Ok();
         }
 
         [HttpGet("GetMenuItems")]

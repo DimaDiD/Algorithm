@@ -9,7 +9,7 @@ public partial class PageContent
 
     public string? Text { get; set; }
 
-    public int SubPageId { get; set; }
+    public int? SubPageId { get; set; }
 
     public string? TextType { get; set; }
 
