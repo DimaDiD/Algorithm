@@ -33,7 +33,7 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create CreateSubPageAsync page method. Message: {exception.Message}");
+                throw new Exception($"Error in create GetPageContentBySettingStatusAsync page method. Message: {exception.Message}");
             }
         }
 
@@ -41,19 +41,45 @@ namespace MMSA.BLL.Services.Implementation
         {
             try
             {
+                var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
+                foreach (var item in pageContents) {
+                    item.ContentLocation += 1;
+                    await _pageContentRepository.UpdateAsync(item, true);
+                }
+
                 await _pageContentRepository.InsertAsync(pageContent, true);
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create CreateSubPageAsync page method. Message: {exception.Message}");
+                throw new Exception($"Error in create CreatePageContentAsync page method. Message: {exception.Message}");
             }
         }
 
-        public async Task DeletePageContentAsync(PageContent pageContent)
+        public async Task UpdatePageContentAsync(PageContent pageContent)
         {
             try
             {
+                await _pageContentRepository.UpdateAsync(pageContent, true);
+            }
+            catch (Exception exception)
+            {
+                throw new Exception($"Error in create UpdatePageContentAsync page method. Message: {exception.Message}");
+            }
+        }
+
+        public async Task DeletePageContentAsync(int pageContentId)
+        {
+            try
+            {
+                var pageContent = await _pageContentRepository.GetFirstOrDefaultAsync(x => x.Id == pageContentId);
                 await _pageContentRepository.DeleteAsync(pageContent, true);
+
+                var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && pageContent.PageId == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
+                foreach (var item in pageContents)
+                {
+                    item.ContentLocation -= 1;
+                    await _pageContentRepository.UpdateAsync(item, true);
+                }                               
             }
             catch (Exception exception)
             {

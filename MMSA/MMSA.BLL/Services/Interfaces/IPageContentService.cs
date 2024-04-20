@@ -6,6 +6,7 @@ namespace MMSA.BLL.Services.Interfaces
     {
         Task<List<PageContent>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId);
         Task CreatePageContentAsync(PageContent pageContent);
-        Task DeletePageContentAsync(PageContent pageContent);
+        Task DeletePageContentAsync(int pageContentId);
+        Task UpdatePageContentAsync(PageContent pageContent);
     }
 }

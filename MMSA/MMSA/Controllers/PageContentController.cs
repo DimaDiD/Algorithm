@@ -28,10 +28,17 @@ namespace MMSA.Controllers
             return Ok();
         }
 
-        [HttpDelete("DeletePageContent")]
-        public async Task<IActionResult> DeletePageContent(PageContent page)
+        [HttpPut("UpdatePageContent")]
+        public async Task<IActionResult> UpdatePageContent(PageContent page)
         {
-            await _pageContentService.DeletePageContentAsync(page);
+            await _pageContentService.UpdatePageContentAsync(page);
+            return Ok();
+        }
+
+        [HttpDelete("DeletePageContent")]
+        public async Task<IActionResult> DeletePageContent(int pageContentId)
+        {
+            await _pageContentService.DeletePageContentAsync(pageContentId);
             return Ok();
         }
     }
