@@ -15,9 +15,9 @@ namespace MMSA.Controllers
         }
 
         [HttpGet("GetPageContentByMenuStatus")]
-        public async Task<IActionResult> GetPageContentByMenuStatus(int pageId, int? subPageId)
+        public async Task<IActionResult> GetPageContentByMenuStatus(int pageId, int? subPageId, string codeStatus)
         {
-            var pageContent = await _pageContentService.GetPageContentBySettingStatusAsync(pageId, subPageId);
+            var pageContent = await _pageContentService.GetPageContentBySettingStatusAsync(pageId, subPageId, codeStatus);
             return Ok(pageContent);
         }
 

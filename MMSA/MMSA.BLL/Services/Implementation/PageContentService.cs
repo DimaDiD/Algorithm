@@ -16,18 +16,18 @@ namespace MMSA.BLL.Services.Implementation
             _mapper = mapper;
         }
 
-        public async Task<List<PageContent>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId)
+        public async Task<List<PageContent>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId, string codeStatus)
         {
             try
             {
                 if (subPageId == null)
                 {
-                    var pageContent = await _pageContentRepository.GetAllAsync(x => x.PageId == pageId);
+                    var pageContent = await _pageContentRepository.GetAllAsync(x => x.PageId == pageId && (x.CodeType == codeStatus || x.CodeType == "All" ));
                     return pageContent.OrderBy(x => x.ContentLocation).ToList();
                 }
                 else
                 {
-                    var pageContent = await _pageContentRepository.GetAllAsync(x => x.SubPageId == subPageId);
+                    var pageContent = await _pageContentRepository.GetAllAsync(x => x.SubPageId == subPageId && (x.CodeType == codeStatus || x.CodeType == "All"));
                     return pageContent.OrderBy(x => x.ContentLocation).ToList();
                 }
             }
@@ -41,10 +41,11 @@ namespace MMSA.BLL.Services.Implementation
         {
             try
             {
-                var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
+                var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && 
+                    pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
                 foreach (var item in pageContents) {
                     item.ContentLocation += 1;
-                    await _pageContentRepository.UpdateAsync(item, true);
+                    await _pageContentRepository.UpdateAsync(item, true); //kjasjksadjkl
                 }
 
                 await _pageContentRepository.InsertAsync(pageContent, true);
