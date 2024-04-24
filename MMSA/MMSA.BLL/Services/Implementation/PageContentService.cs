@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using MMSA.BLL.Services.Interfaces;
+﻿using MMSA.BLL.Services.Interfaces;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Interfaces;
 
@@ -8,12 +7,9 @@ namespace MMSA.BLL.Services.Implementation
     public class PageContentService: IPageContentService
     {
         private readonly IPageContentRepository _pageContentRepository;
-        private readonly IMapper _mapper;
-        public PageContentService(IPageContentRepository pageContentRepository,
-            IMapper mapper)
+        public PageContentService(IPageContentRepository pageContentRepository)
         {
             _pageContentRepository = pageContentRepository;
-            _mapper = mapper;
         }
 
         public async Task<List<PageContent>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId, string codeStatus)
@@ -33,7 +29,7 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create GetPageContentBySettingStatusAsync page method. Message: {exception.Message}");
+                throw new Exception(exception.Message);
             }
         }
 
@@ -43,16 +39,17 @@ namespace MMSA.BLL.Services.Implementation
             {
                 var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && 
                     pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
+
                 foreach (var item in pageContents) {
                     item.ContentLocation += 1;
-                    await _pageContentRepository.UpdateAsync(item, true); //kjasjksadjkl
+                    await _pageContentRepository.UpdateAsync(item, true); 
                 }
 
                 await _pageContentRepository.InsertAsync(pageContent, true);
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create CreatePageContentAsync page method. Message: {exception.Message}");
+                throw new Exception(exception.Message);
             }
         }
 
@@ -64,7 +61,7 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create UpdatePageContentAsync page method. Message: {exception.Message}");
+                throw new Exception(exception.Message);
             }
         }
 
@@ -84,7 +81,7 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create CreateSubPageAsync page method. Message: {exception.Message}");
+                throw new Exception(exception.Message);
             }
         }
     }

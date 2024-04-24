@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using MMSA.BLL.Dtos;
 using MMSA.BLL.Services.Interfaces;
 
 namespace MMSA.Controllers
@@ -8,7 +7,7 @@ namespace MMSA.Controllers
     [ApiController]
     public class PageController : ControllerBase
     {
-        private readonly IPageService _pageService; 
+        private readonly IPageService _pageService;
         public PageController(IPageService pageService)
         {
             _pageService = pageService;
@@ -17,15 +16,21 @@ namespace MMSA.Controllers
         [HttpPost("CreatePage")]
         public async Task<IActionResult> CreatePage(string pageName)
         {
-            await _pageService.CreatePageAsync(pageName);
-            return Ok();
+            try
+            {
+                await _pageService.CreatePageAsync(pageName);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("GetMenuItems")]
         public async Task<IActionResult> GetMenuItems()
         {
-            var pages = await _pageService.GetMenuItemsAsync();
-            return Ok(pages);
+            return Ok(await _pageService.GetMenuItemsAsync());
         }
     }
 }

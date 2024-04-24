@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MMSA.BLL.Services.Interfaces;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Interfaces;
@@ -10,13 +9,9 @@ namespace MMSA.BLL.Services.Implementation
     {
         private readonly ISubPageRepository _subPageRepository;
         private readonly IPageRepository _pageRepository;
-        private readonly IMapper _mapper;
-        public SubPageService(ISubPageRepository subPageRepository,
-            IMapper mapper,
-            IPageRepository pageRepository)
+        public SubPageService(ISubPageRepository subPageRepository, IPageRepository pageRepository)
         {
             _subPageRepository = subPageRepository;
-            _mapper = mapper;
             _pageRepository = pageRepository;
         }
 
@@ -35,7 +30,7 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create CreateSubPageAsync page method. Message: {exception.Message}");
+                throw new Exception(exception.Message);
             }
         }
 
@@ -60,7 +55,7 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create CreateSubPageAsync page method. Message: {exception.Message}");
+                throw new Exception(exception.Message);
             }
         }
 
@@ -72,21 +67,15 @@ namespace MMSA.BLL.Services.Implementation
 
                 if (page != null)
                 {   
-                    //DeleteContent
-
                     foreach (var subPage in page.SubPages)
                     {
                         await _subPageRepository.DeleteAsync(subPage, true);
                     }
 
-                    await _pageRepository.DeleteAsync(page, true);
-
-                    
+                    await _pageRepository.DeleteAsync(page, true);                    
                 }
                 else
                 {
-                    //deleteContent 
-
                     var subPage = await _subPageRepository.GetFirstOrDefaultAsync(x => x.Name == title);
 
                     await _subPageRepository.DeleteAsync(subPage, true);
@@ -94,7 +83,7 @@ namespace MMSA.BLL.Services.Implementation
             }
             catch (Exception exception)
             {
-                throw new Exception($"Error in create CreateSubPageAsync page method. Message: {exception.Message}");
+                throw new Exception(exception.Message);
             }
         }
     }

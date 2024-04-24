@@ -16,22 +16,43 @@ namespace MMSA.Controllers
         [HttpPost("CreateSubPage")]
         public async Task<IActionResult> CreateSubPage(string pageName, string subPageName)
         {
-            await _subPageService.CreateSubPageAsync(pageName, subPageName);
-            return Ok();
+            try
+            {
+                await _subPageService.CreateSubPageAsync(pageName, subPageName);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPut("UpdateMenuItem")]
         public async Task<IActionResult> UpdateMenuItem(string oldTitle, string newTitle)
         {
-            await _subPageService.UpdateMenuItemAsync(oldTitle, newTitle);
-            return Ok();
+            try
+            {
+                await _subPageService.UpdateMenuItemAsync(oldTitle, newTitle);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("DeleteMenuItem")]
         public async Task<IActionResult> DeleteeMenuItem(string title)
         {
-            await _subPageService.DeleteMenuItemAsync(title);
-            return Ok();
+            try
+            {
+                await _subPageService.DeleteMenuItemAsync(title);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }
