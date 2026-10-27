@@ -1,8 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace MMSA.DAL.Entities;
 
-public partial class AlgorithmDataContext : DbContext
+public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
 {
     public AlgorithmDataContext()
     {
@@ -21,6 +22,8 @@ public partial class AlgorithmDataContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Page>(entity =>
         {
             entity.ToTable("Page");
