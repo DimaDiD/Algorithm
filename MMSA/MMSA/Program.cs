@@ -5,6 +5,10 @@ using MMSA.BLL.Services.Interfaces;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Implementations;
 using MMSA.DAL.Repositories.Interfaces;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using MMSA.BLL.JwtOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +33,45 @@ builder.Services
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AlgorithmDataContext>();
+
+builder.Services.AddOptions<JwtOptions>().Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer is required")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Audience is required")
+    .Validate(o => Encoding.UTF8.GetBytes(o.SigningKey).Length >= 32, "Jwt:SigningKey must be at least 32 bytes")
+    .ValidateOnStart();
+
+var jwtOptions = builder.Configuration
+    .GetSection(JwtOptions.SectionName)
+    .Get<JwtOptions>()
+    ?? throw new InvalidOperationException("Jwt configuration section is missing");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
+            
+            ValidateLifetime = true,
+            RequireExpirationTime = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+
+            NameClaimType = "name",
+            RoleClaimType = "role"
+        };
+    });
+
 
 builder.Services.AddScoped<IPageRepository, PageRepository>();
 builder.Services.AddScoped<IPageService, PageService>();
@@ -64,7 +107,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseHttpsRedirection();
-app.UseAuthentication();
+
+app.UseAuthentication();    
 app.UseAuthorization();
 app.MapControllers();
 
