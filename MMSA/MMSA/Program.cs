@@ -1,17 +1,22 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MMSA.Authorization;
 using MMSA.BLL.Options;
 using MMSA.BLL.Services.Implementation;
 using MMSA.BLL.Services.Implementation.Auth;
 using MMSA.BLL.Services.Interfaces;
 using MMSA.BLL.Services.Interfaces.Auth;
+using MMSA.DAL.Constants;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Implementations;
 using MMSA.DAL.Repositories.Interfaces;
+using MMSA.RateLimiting;
 using MMSA.Seed;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +81,52 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build())
+    .AddPolicy(Policies.CanEditContent, policy =>
+        policy.RequireRole(Roles.Admin, Roles.Teacher))
+    .AddPolicy(Policies.CanManageUsers, policy =>
+        policy.RequireRole(Roles.Admin));
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    RateLimitPartition.GetTokenBucketLimiter(
+        partitionKey: RateLimitPolicies.GetClientKey(httpContext),
+        factory: _ => new TokenBucketRateLimiterOptions
+        {
+            TokenLimit = 100,
+            TokensPerPeriod = 50,
+            ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+
+    options.AddPolicy(RateLimitPolicies.Auth, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: RateLimitPolicies.GetClientKey(httpContext),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                
+            }));
+
+    options.OnRejected = (context, _) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString();
+        }
+        return ValueTask.CompletedTask;
+    };
+});
 
 builder.Services.AddScoped<IPageRepository, PageRepository>();
 builder.Services.AddScoped<IPageService, PageService>();
@@ -87,6 +138,7 @@ builder.Services.AddScoped<ISubPageService, SubPageService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 
 
 builder.Services.AddControllers();
@@ -122,6 +174,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 
+app.UseRateLimiter();
 app.UseAuthentication();    
 app.UseAuthorization();
 app.MapControllers();

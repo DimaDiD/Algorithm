@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MMSA.Authorization;
 using MMSA.BLL.Services.Interfaces;
 
 namespace MMSA.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = Policies.CanEditContent)]
     public class PageController : ControllerBase
     {
         private readonly IPageService _pageService;
@@ -27,6 +30,7 @@ namespace MMSA.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("GetMenuItems")]
         public async Task<IActionResult> GetMenuItems()
         {

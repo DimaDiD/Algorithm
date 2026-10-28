@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MMSA.Authorization;
 using MMSA.BLL.Services.Interfaces;
 
 namespace MMSA.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = Policies.CanEditContent)]
     public class SubPageController : ControllerBase
     {
         private readonly ISubPageService _subPageService;

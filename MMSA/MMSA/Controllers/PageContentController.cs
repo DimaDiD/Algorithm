@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MMSA.Authorization;
 using MMSA.BLL.Services.Interfaces;
 using MMSA.DAL.Entities;
 
@@ -6,6 +8,7 @@ namespace MMSA.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = Policies.CanEditContent)]
     public class PageContentController : ControllerBase
     {
         private readonly IPageContentService _pageContentService;
@@ -14,6 +17,7 @@ namespace MMSA.Controllers
             _pageContentService = pageContentService;
         }
 
+        [AllowAnonymous]
         [HttpGet("GetPageContentByMenuStatus")]
         public async Task<IActionResult> GetPageContentByMenuStatus(int pageId, int? subPageId, string codeStatus)
         {

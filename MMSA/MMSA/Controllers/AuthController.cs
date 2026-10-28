@@ -38,7 +38,6 @@ namespace MMSA.Controllers
                 : Unauthorized(new { errors = result.Errors });
         }
 
-        [Authorize]
         [HttpGet("me")]
         public IActionResult Me()
         {

@@ -1,4 +1,6 @@
-﻿public static class ClaimType
+﻿namespace MMSA.DAL.Constants;
+
+public static class ClaimType
 {
     public const string Name = "name";
     public const string Role = "role";
