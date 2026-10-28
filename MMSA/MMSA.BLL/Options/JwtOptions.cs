@@ -1,4 +1,4 @@
-﻿namespace MMSA.BLL.JwtOptions
+﻿namespace MMSA.BLL.Options
 {
     public sealed class JwtOptions
     {

@@ -1,14 +1,17 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using MMSA.BLL.Options;
 using MMSA.BLL.Services.Implementation;
+using MMSA.BLL.Services.Implementation.Auth;
 using MMSA.BLL.Services.Interfaces;
+using MMSA.BLL.Services.Interfaces.Auth;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Implementations;
 using MMSA.DAL.Repositories.Interfaces;
+using MMSA.Seed;
 using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using MMSA.BLL.JwtOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +35,8 @@ builder.Services
         options.Lockout.AllowedForNewUsers = true;
     })
     .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<AlgorithmDataContext>();
+    .AddEntityFrameworkStores<AlgorithmDataContext>()
+    .AddSignInManager();
 
 builder.Services.AddOptions<JwtOptions>().Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
     .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer is required")
@@ -67,8 +71,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             RequireExpirationTime = true,
             ClockSkew = TimeSpan.FromSeconds(30),
 
-            NameClaimType = "name",
-            RoleClaimType = "role"
+            NameClaimType = ClaimType.Name,
+            RoleClaimType = ClaimType.Role
         };
     });
 
@@ -79,6 +83,10 @@ builder.Services.AddScoped<IPageContentRepository, PageContentRepository>();
 builder.Services.AddScoped<IPageContentService, PageContentService>();
 builder.Services.AddScoped<ISubPageRepository, SubPageRepository>();
 builder.Services.AddScoped<ISubPageService, SubPageService>();
+
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 
 builder.Services.AddControllers();
@@ -98,6 +106,12 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    await IdentitySeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
+}
+
 app.UseRouting();
 app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
