@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using MMSA.Authorization;
 using MMSA.BLL.Options;
 using MMSA.BLL.Services.Implementation;
@@ -15,6 +16,7 @@ using MMSA.DAL.Repositories.Implementations;
 using MMSA.DAL.Repositories.Interfaces;
 using MMSA.RateLimiting;
 using MMSA.Seed;
+using MMSA.Swagger;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -144,8 +146,24 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(); 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "MMSA API",
+        Version = "v1"
+    });
 
+    options.AddSecurityDefinition(AuthorizeOperationFilter.SchemeId, new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Paste the access token from /api/Auth/login (without the 'Bearer ' prefix)."
+    });
+
+    options.OperationFilter<AuthorizeOperationFilter>();
+});
 builder.Services.AddControllers().AddJsonOptions(x =>
 {
     x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
