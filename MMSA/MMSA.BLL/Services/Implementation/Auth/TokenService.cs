@@ -5,19 +5,21 @@ using MMSA.BLL.Options;
 using MMSA.BLL.Services.Interfaces.Auth;
 using MMSA.DAL.Constants;
 using MMSA.DAL.Entities;
+using System.Buffers.Text;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace MMSA.BLL.Services.Implementation.Auth
 {
     public sealed class TokenService : ITokenService
     {
-        private readonly JwtOptions _options;
+        private readonly AuthTokenOptions _options;
         private readonly TimeProvider _timeProvider;
         private readonly SigningCredentials _signingCredentials;
         private readonly JsonWebTokenHandler _tokenHandler = new();
 
-        public TokenService(IOptions<JwtOptions> options, TimeProvider timeProvider) 
+        public TokenService(IOptions<AuthTokenOptions> options, TimeProvider timeProvider) 
         {
             _options = options.Value;
             _timeProvider  = timeProvider;
@@ -55,7 +57,12 @@ namespace MMSA.BLL.Services.Implementation.Auth
 
             var token = _tokenHandler.CreateToken(descriptor);
             return (token, expires);
-
         }
+
+        public string GenerateRefreshToken() =>
+            Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(64));
+
+        public string HashRefreshToken(string refreshToken) =>
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
     }
 }

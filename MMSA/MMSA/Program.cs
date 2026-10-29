@@ -43,15 +43,16 @@ builder.Services
     .AddEntityFrameworkStores<AlgorithmDataContext>()
     .AddSignInManager();
 
-builder.Services.AddOptions<JwtOptions>().Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+builder.Services.AddOptions<AuthTokenOptions>().Bind(builder.Configuration.GetSection(AuthTokenOptions.SectionName))
     .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer is required")
     .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Audience is required")
     .Validate(o => Encoding.UTF8.GetBytes(o.SigningKey).Length >= 32, "Jwt:SigningKey must be at least 32 bytes")
+    .Validate(o => o.RefreshTokenDays > 0, "Jwt:RefreshTokenDays must be positive")
     .ValidateOnStart();
 
 var jwtOptions = builder.Configuration
-    .GetSection(JwtOptions.SectionName)
-    .Get<JwtOptions>()
+    .GetSection(AuthTokenOptions.SectionName)
+    .Get<AuthTokenOptions>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -139,7 +140,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
-
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

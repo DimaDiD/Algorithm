@@ -5,5 +5,7 @@ namespace MMSA.BLL.Services.Interfaces.Auth
     public interface ITokenService
     {
         (string Token, DateTime ExpiresAtUtc) CreateAccessToken(ApplicationUser user, IEnumerable<string> roles);
+        string GenerateRefreshToken();
+        string HashRefreshToken(string refreshToken);
     }
 }
