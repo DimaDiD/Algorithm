@@ -142,6 +142,99 @@ namespace MMSA.DAL.Migrations
                     b.ToTable("PageContent", (string)null);
                 });
 
+            modelBuilder.Entity("MMSA.DAL.Entities.ProgrammingTopic", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ProgrammingTopic", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Змінні та типи даних"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Введення та виведення даних"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Арифметичні операції"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Оператори порівняння"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Логічні оператори"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "Умовний оператор if / else"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Name = "Оператор вибору switch / case"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Name = "Цикл for"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Name = "Цикл while"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Name = "Масиви"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Name = "Рядки"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Name = "Функції та процедури"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Name = "Рекурсія"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Name = "Анонімні функції"
+                        });
+                });
+
             modelBuilder.Entity("MMSA.DAL.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -344,6 +437,21 @@ namespace MMSA.DAL.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("PageContentTopic", b =>
+                {
+                    b.Property<int>("PageContentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProgrammingTopicId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PageContentId", "ProgrammingTopicId");
+
+                    b.HasIndex("ProgrammingTopicId");
+
+                    b.ToTable("PageContentTopic");
+                });
+
             modelBuilder.Entity("MMSA.DAL.Entities.RefreshToken", b =>
                 {
                     b.HasOne("MMSA.DAL.Entities.ApplicationUser", "User")
@@ -413,6 +521,21 @@ namespace MMSA.DAL.Migrations
                     b.HasOne("MMSA.DAL.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PageContentTopic", b =>
+                {
+                    b.HasOne("MMSA.DAL.Entities.PageContent", null)
+                        .WithMany()
+                        .HasForeignKey("PageContentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MMSA.DAL.Entities.ProgrammingTopic", null)
+                        .WithMany()
+                        .HasForeignKey("ProgrammingTopicId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

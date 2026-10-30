@@ -10,7 +10,11 @@ namespace MMSA.BLL.Mapping
         {
             CreateMap<Page, PageDTO>().ReverseMap();
             CreateMap<SubPage, SubPageDTO>().ReverseMap();
-            CreateMap<PageContent, PageContentDTO>().ReverseMap();
+            CreateMap<PageContent, PageContentDTO>()
+                .ForMember(dto => dto.Topics, options => options.MapFrom(entity =>
+                    entity.Topics.Select(topic => topic.Name).OrderBy(name => name).ToList()))
+                .ReverseMap()
+                .ForMember(entity => entity.Topics, options => options.Ignore());
         }
     }
 }

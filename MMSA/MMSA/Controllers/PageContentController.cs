@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MMSA.Authorization;
+using MMSA.BLL.Dtos;
 using MMSA.BLL.Services.Interfaces;
-using MMSA.DAL.Entities;
 
 namespace MMSA.Controllers
 {
@@ -25,7 +25,7 @@ namespace MMSA.Controllers
         }
 
         [HttpPost("CreatePageContent")]
-        public async Task<IActionResult> CreatePageContent(PageContent page)
+        public async Task<IActionResult> CreatePageContent(PageContentDTO page)
         {
             try
             {
@@ -39,7 +39,7 @@ namespace MMSA.Controllers
         }
 
         [HttpPut("UpdatePageContent")]
-        public async Task<IActionResult> UpdatePageContent(PageContent page)
+        public async Task<IActionResult> UpdatePageContent(PageContentDTO page)
         {
             try
             {
@@ -50,6 +50,12 @@ namespace MMSA.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpGet("GetProgrammingTopics")]
+        public async Task<IActionResult> GetProgrammingTopics()
+        {
+            return Ok(await _pageContentService.GetProgrammingTopicsAsync());
         }
 
         [HttpDelete("DeletePageContent")]

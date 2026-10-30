@@ -18,4 +18,6 @@ public partial class PageContent
     public int? ContentLocation { get; set; }
 
     public int? PageId { get; set; }
+
+    public virtual ICollection<ProgrammingTopic> Topics { get; set; } = new List<ProgrammingTopic>();
 }

@@ -9,6 +9,6 @@ namespace MMSA.DAL.Repositories.Interfaces
 {
     public interface IPageContentRepository : IBaseRepository<PageContent>
     {
-
+        Task<PageContent?> GetWithTopicsAsync(int id);
     }
 }

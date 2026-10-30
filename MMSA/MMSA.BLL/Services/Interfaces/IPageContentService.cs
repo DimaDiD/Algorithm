@@ -1,12 +1,13 @@
-﻿using MMSA.DAL.Entities;
+﻿using MMSA.BLL.Dtos;
 
 namespace MMSA.BLL.Services.Interfaces
 {
     public interface IPageContentService
     {
-        Task<List<PageContent>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId, string codeStatus);
-        Task CreatePageContentAsync(PageContent pageContent);
+        Task<List<PageContentDTO>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId, string codeStatus);
+        Task CreatePageContentAsync(PageContentDTO pageContent);
         Task DeletePageContentAsync(int pageContentId);
-        Task UpdatePageContentAsync(PageContent pageContent);
+        Task UpdatePageContentAsync(PageContentDTO pageContent);
+        Task<List<string>> GetProgrammingTopicsAsync();
     }
 }

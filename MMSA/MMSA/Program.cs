@@ -134,6 +134,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<IPageRepository, PageRepository>();
 builder.Services.AddScoped<IPageService, PageService>();
 builder.Services.AddScoped<IPageContentRepository, PageContentRepository>();
+builder.Services.AddScoped<IProgrammingTopicRepository, ProgrammingTopicRepository>();
 builder.Services.AddScoped<IPageContentService, PageContentService>();
 builder.Services.AddScoped<ISubPageRepository, SubPageRepository>();
 builder.Services.AddScoped<ISubPageService, SubPageService>();

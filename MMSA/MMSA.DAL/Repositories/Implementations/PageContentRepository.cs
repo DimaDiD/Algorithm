@@ -1,4 +1,5 @@
-﻿using MMSA.DAL.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Interfaces;
 
 namespace MMSA.DAL.Repositories.Implementations
@@ -9,5 +10,10 @@ namespace MMSA.DAL.Repositories.Implementations
         {
 
         }
+
+        public Task<PageContent?> GetWithTopicsAsync(int id) =>
+            _dataContext.PageContents
+                .Include(content => content.Topics)
+                .FirstOrDefaultAsync(content => content.Id == id);
     }
 }
