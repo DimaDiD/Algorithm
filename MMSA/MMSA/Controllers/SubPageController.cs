@@ -8,54 +8,48 @@ namespace MMSA.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = Policies.CanEditContent)]
-    public class SubPageController : ControllerBase
+    public class SubPageController : CourseEditingControllerBase
     {
         private readonly ISubPageService _subPageService;
-        public SubPageController(ISubPageService subPageService)
+        private readonly ICourseService _courseService;
+
+        public SubPageController(ISubPageService subPageService, ICourseService courseService)
         {
             _subPageService = subPageService;
+            _courseService = courseService;
         }
 
         [HttpPost("CreateSubPage")]
-        public async Task<IActionResult> CreateSubPage(string pageName, string subPageName)
-        {
-            try
+        public Task<IActionResult> CreateSubPage(int pageId, string subPageName) =>
+            Handle(async () =>
             {
-                await _subPageService.CreateSubPageAsync(pageName, subPageName);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
+                if (await EnsureCanEditAsync(_courseService.GetAccessForPageAsync(pageId)) is { } denied)
+                    return denied;
 
-        [HttpPut("UpdateMenuItem")]
-        public async Task<IActionResult> UpdateMenuItem(string oldTitle, string newTitle)
-        {
-            try
-            {
-                await _subPageService.UpdateMenuItemAsync(oldTitle, newTitle);
+                await _subPageService.CreateSubPageAsync(pageId, subPageName);
                 return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
+            });
 
-        [HttpDelete("DeleteMenuItem")]
-        public async Task<IActionResult> DeleteeMenuItem(string title)
-        {
-            try
+        [HttpPut("RenameSubPage")]
+        public Task<IActionResult> RenameSubPage(int subPageId, string newName) =>
+            Handle(async () =>
             {
-                await _subPageService.DeleteMenuItemAsync(title);
+                if (await EnsureCanEditAsync(_courseService.GetAccessForSubPageAsync(subPageId)) is { } denied)
+                    return denied;
+
+                await _subPageService.RenameSubPageAsync(subPageId, newName);
                 return Ok();
-            }
-            catch (Exception ex)
+            });
+
+        [HttpDelete("DeleteSubPage")]
+        public Task<IActionResult> DeleteSubPage(int subPageId) =>
+            Handle(async () =>
             {
-                return BadRequest(ex.Message);
-            }
-        }
+                if (await EnsureCanEditAsync(_courseService.GetAccessForSubPageAsync(subPageId)) is { } denied)
+                    return denied;
+
+                await _subPageService.DeleteSubPageAsync(subPageId);
+                return Ok();
+            });
     }
 }

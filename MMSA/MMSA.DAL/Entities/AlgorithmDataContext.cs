@@ -14,6 +14,8 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
     {
     }
 
+    public virtual DbSet<Course> Courses { get; set; }
+
     public virtual DbSet<Page> Pages { get; set; }
 
     public virtual DbSet<PageContent> PageContents { get; set; }
@@ -24,9 +26,56 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
 
     public virtual DbSet<ProgrammingTopic> ProgrammingTopics { get; set; }
 
+    public virtual DbSet<Exercise> Exercises { get; set; }
+
+    public virtual DbSet<ProgrammingLanguage> ProgrammingLanguages { get; set; }
+
+    public virtual DbSet<CourseLanguage> CourseLanguages { get; set; }
+
+    public virtual DbSet<Question> Questions { get; set; }
+
+    public virtual DbSet<QuestionOption> QuestionOptions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Course>(entity =>
+        {
+            entity.ToTable("Course");
+
+            entity.Property(e => e.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(e => e.Slug)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+
+            entity.Property(e => e.Description).HasMaxLength(2000);
+
+            entity.HasOne(e => e.Owner)
+                .WithMany()
+                .HasForeignKey(e => e.OwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(e => e.Pages)
+                .WithOne(p => p.Course)
+                .HasForeignKey(p => p.CourseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasData(new Course
+            {
+                Id = 1,
+                Title = "Методи розробки алгоритмів",
+                Slug = "metody-rozrobky-alhorytmiv",
+                Description = "Задачі з поясненнями та готовими прикладами коду кількома мовами програмування.",
+                IsPublished = true,
+                CreatedAtUtc = new DateTime(2026, 10, 31, 0, 0, 0, DateTimeKind.Utc)
+            });
+        });
 
         modelBuilder.Entity<Page>(entity =>
         {
@@ -115,6 +164,94 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
                 "PageContentTopic",
                 right => right.HasOne<ProgrammingTopic>().WithMany().HasForeignKey("ProgrammingTopicId"),
                 left => left.HasOne<PageContent>().WithMany().HasForeignKey("PageContentId"));
+
+        modelBuilder.Entity<Exercise>(entity =>
+        {
+            entity.ToTable("Exercise");
+
+            entity.Property(e => e.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(e => e.Description).HasMaxLength(2000);
+
+            entity.HasIndex(e => new { e.PageId, e.SubPageId });
+
+            entity.HasMany(e => e.Questions)
+                .WithOne(q => q.Exercise)
+                .HasForeignKey(q => q.ExerciseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Question>(entity =>
+        {
+            entity.ToTable("Question");
+
+            entity.Property(e => e.Type)
+                .HasConversion<string>()
+                .HasMaxLength(30);
+
+            entity.Property(e => e.Text)
+                .HasMaxLength(4000)
+                .IsRequired();
+
+            entity.Property(e => e.CodeLanguage).HasMaxLength(20);
+
+            entity.HasMany(e => e.Options)
+                .WithOne(o => o.Question)
+                .HasForeignKey(o => o.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<QuestionOption>(entity =>
+        {
+            entity.ToTable("QuestionOption");
+
+            entity.Property(e => e.Text)
+                .HasMaxLength(1000)
+                .IsRequired();
+        });
+
+        modelBuilder.Entity<ProgrammingLanguage>(entity =>
+        {
+            entity.ToTable("ProgrammingLanguage");
+
+            entity.Property(e => e.Code)
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.HasIndex(e => e.Code).IsUnique();
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(e => e.HighlightLanguage)
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.HasData(
+                new ProgrammingLanguage { Id = 1, Code = "csharp", Name = "C#", HighlightLanguage = "csharp" },
+                new ProgrammingLanguage { Id = 2, Code = "cpp", Name = "C++", HighlightLanguage = "cpp" },
+                new ProgrammingLanguage { Id = 3, Code = "pascal", Name = "Pascal", HighlightLanguage = "delphi" });
+        });
+
+        modelBuilder.Entity<CourseLanguage>(entity =>
+        {
+            entity.ToTable("CourseLanguage");
+
+            entity.HasKey(e => new { e.CourseId, e.ProgrammingLanguageId });
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.Languages)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ProgrammingLanguage)
+                .WithMany()
+                .HasForeignKey(e => e.ProgrammingLanguageId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -1,90 +1,44 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MMSA.BLL.Services.Interfaces;
+﻿using MMSA.BLL.Services.Interfaces;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Interfaces;
 
 namespace MMSA.BLL.Services.Implementation
 {
-    public class SubPageService: ISubPageService
+    public class SubPageService : ISubPageService
     {
         private readonly ISubPageRepository _subPageRepository;
-        private readonly IPageRepository _pageRepository;
-        public SubPageService(ISubPageRepository subPageRepository, IPageRepository pageRepository)
+        private readonly ICourseRepository _courseRepository;
+
+        public SubPageService(ISubPageRepository subPageRepository, ICourseRepository courseRepository)
         {
             _subPageRepository = subPageRepository;
-            _pageRepository = pageRepository;
+            _courseRepository = courseRepository;
         }
 
-        public async Task CreateSubPageAsync(string pageName, string subPageName)
+        public async Task CreateSubPageAsync(int pageId, string subPageName)
         {
-            try
-            {
-                var page = await _pageRepository.GetFirstOrDefaultAsync(x => x.PageName == pageName);
-                var newSubPage = new SubPage
-                {
-                    PageId = page.Id,
-                    Name = subPageName
-                };
+            var name = PageService.ValidateName(subPageName);
 
-                await _subPageRepository.InsertAsync(newSubPage, true);
-            }
-            catch (Exception exception)
-            {
-                throw new Exception(exception.Message);
-            }
+            if (await _subPageRepository.GetFirstOrDefaultAsync(s => s.PageId == pageId && s.Name == name) is not null)
+                throw new ArgumentException($"Тема «{name}» уже є в цьому розділі.");
+
+            await _subPageRepository.InsertAsync(new SubPage { PageId = pageId, Name = name }, true);
         }
 
-        public async Task UpdateMenuItemAsync(string oldTitle, string newTitle)
+        public async Task RenameSubPageAsync(int subPageId, string newName)
         {
-            try
-            {
-                var page = await _pageRepository.GetFirstOrDefaultAsync(x => x.PageName == oldTitle);
+            var name = PageService.ValidateName(newName);
 
-                if (page != null)
-                {
-                    page.PageName = newTitle;
-                    await _pageRepository.UpdateAsync(page, true);
-                }
-                else
-                {
-                    var subPage = await _subPageRepository.GetFirstOrDefaultAsync(x => x.Name == oldTitle);
+            var subPage = await _subPageRepository.GetFirstOrDefaultAsync(s => s.Id == subPageId)
+                ?? throw new KeyNotFoundException("Тему не знайдено.");
 
-                    subPage.Name = newTitle;
-                    await _subPageRepository.UpdateAsync(subPage, true);
-                }
-            }
-            catch (Exception exception)
-            {
-                throw new Exception(exception.Message);
-            }
+            if (await _subPageRepository.GetFirstOrDefaultAsync(s => s.PageId == subPage.PageId && s.Id != subPageId && s.Name == name) is not null)
+                throw new ArgumentException($"Тема «{name}» уже є в цьому розділі.");
+
+            subPage.Name = name;
+            await _subPageRepository.UpdateAsync(subPage, true);
         }
 
-        public async Task DeleteMenuItemAsync( string title)
-        {
-            try
-            {
-                var page = await _pageRepository.GetFirstOrDefaultAsync(x => x.PageName == title, include: x => x.Include(x => x.SubPages));
-
-                if (page != null)
-                {   
-                    foreach (var subPage in page.SubPages)
-                    {
-                        await _subPageRepository.DeleteAsync(subPage, true);
-                    }
-
-                    await _pageRepository.DeleteAsync(page, true);                    
-                }
-                else
-                {
-                    var subPage = await _subPageRepository.GetFirstOrDefaultAsync(x => x.Name == title);
-
-                    await _subPageRepository.DeleteAsync(subPage, true);
-                }
-            }
-            catch (Exception exception)
-            {
-                throw new Exception(exception.Message);
-            }
-        }
+        public Task DeleteSubPageAsync(int subPageId) => _courseRepository.DeleteSubPageTreeAsync(subPageId);
     }
 }

@@ -9,5 +9,9 @@ public partial class Page
 
     public string PageName { get; set; } = null!;
 
+    public int CourseId { get; set; }
+
+    public virtual Course Course { get; set; } = null!;
+
     public virtual ICollection<SubPage> SubPages { get; set; } = new List<SubPage>();
 }

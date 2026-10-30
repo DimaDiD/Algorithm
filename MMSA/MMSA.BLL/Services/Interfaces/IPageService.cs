@@ -1,11 +1,12 @@
 ﻿using MMSA.BLL.Dtos;
-using MMSA.DAL.Entities;
 
 namespace MMSA.BLL.Services.Interfaces
 {
     public interface IPageService
     {
-        Task CreatePageAsync(string pageName);
-        Task<List<PageDTO>> GetMenuItemsAsync();
+        Task<List<PageDTO>> GetMenuItemsAsync(int courseId);
+        Task CreatePageAsync(int courseId, string pageName);
+        Task RenamePageAsync(int pageId, string newName);
+        Task DeletePageAsync(int pageId);
     }
 }

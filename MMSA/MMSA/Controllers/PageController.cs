@@ -8,33 +8,55 @@ namespace MMSA.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = Policies.CanEditContent)]
-    public class PageController : ControllerBase
+    public class PageController : CourseEditingControllerBase
     {
         private readonly IPageService _pageService;
-        public PageController(IPageService pageService)
+        private readonly ICourseService _courseService;
+
+        public PageController(IPageService pageService, ICourseService courseService)
         {
             _pageService = pageService;
-        }
-
-        [HttpPost("CreatePage")]
-        public async Task<IActionResult> CreatePage(string pageName)
-        {
-            try
-            {
-                await _pageService.CreatePageAsync(pageName);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            _courseService = courseService;
         }
 
         [AllowAnonymous]
         [HttpGet("GetMenuItems")]
-        public async Task<IActionResult> GetMenuItems()
+        public async Task<IActionResult> GetMenuItems(int courseId)
         {
-            return Ok(await _pageService.GetMenuItemsAsync());
+            return Ok(await _pageService.GetMenuItemsAsync(courseId));
         }
+
+        [HttpPost("CreatePage")]
+        public Task<IActionResult> CreatePage(int courseId, string pageName) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanEditAsync(_courseService.GetAccessForCourseAsync(courseId)) is { } denied)
+                    return denied;
+
+                await _pageService.CreatePageAsync(courseId, pageName);
+                return Ok();
+            });
+
+        [HttpPut("RenamePage")]
+        public Task<IActionResult> RenamePage(int pageId, string newName) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanEditAsync(_courseService.GetAccessForPageAsync(pageId)) is { } denied)
+                    return denied;
+
+                await _pageService.RenamePageAsync(pageId, newName);
+                return Ok();
+            });
+
+        [HttpDelete("DeletePage")]
+        public Task<IActionResult> DeletePage(int pageId) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanEditAsync(_courseService.GetAccessForPageAsync(pageId)) is { } denied)
+                    return denied;
+
+                await _pageService.DeletePageAsync(pageId);
+                return Ok();
+            });
     }
 }

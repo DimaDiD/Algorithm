@@ -87,6 +87,112 @@ namespace MMSA.DAL.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("MMSA.DAL.Entities.Course", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Course", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAtUtc = new DateTime(2026, 10, 31, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Задачі з поясненнями та готовими прикладами коду кількома мовами програмування.",
+                            IsPublished = true,
+                            Slug = "metody-rozrobky-alhorytmiv",
+                            Title = "Методи розробки алгоритмів"
+                        });
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.CourseLanguage", b =>
+                {
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProgrammingLanguageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.HasKey("CourseId", "ProgrammingLanguageId");
+
+                    b.HasIndex("ProgrammingLanguageId");
+
+                    b.ToTable("CourseLanguage", (string)null);
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.Exercise", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PageId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubPageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PageId", "SubPageId");
+
+                    b.ToTable("Exercise", (string)null);
+                });
+
             modelBuilder.Entity("MMSA.DAL.Entities.Page", b =>
                 {
                     b.Property<int>("Id")
@@ -95,6 +201,9 @@ namespace MMSA.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
                     b.Property<string>("PageName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -102,6 +211,8 @@ namespace MMSA.DAL.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
 
                     b.ToTable("Page", (string)null);
                 });
@@ -140,6 +251,60 @@ namespace MMSA.DAL.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PageContent", (string)null);
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.ProgrammingLanguage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("HighlightLanguage")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("ProgrammingLanguage", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "csharp",
+                            HighlightLanguage = "csharp",
+                            Name = "C#"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Code = "cpp",
+                            HighlightLanguage = "cpp",
+                            Name = "C++"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Code = "pascal",
+                            HighlightLanguage = "delphi",
+                            Name = "Pascal"
+                        });
                 });
 
             modelBuilder.Entity("MMSA.DAL.Entities.ProgrammingTopic", b =>
@@ -233,6 +398,79 @@ namespace MMSA.DAL.Migrations
                             Id = 14,
                             Name = "Анонімні функції"
                         });
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.Question", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeLanguage")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("ExerciseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceAnswer")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Rubric")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.ToTable("Question", (string)null);
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.QuestionOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuestionOption", (string)null);
                 });
 
             modelBuilder.Entity("MMSA.DAL.Entities.RefreshToken", b =>
@@ -452,6 +690,68 @@ namespace MMSA.DAL.Migrations
                     b.ToTable("PageContentTopic");
                 });
 
+            modelBuilder.Entity("MMSA.DAL.Entities.Course", b =>
+                {
+                    b.HasOne("MMSA.DAL.Entities.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.CourseLanguage", b =>
+                {
+                    b.HasOne("MMSA.DAL.Entities.Course", "Course")
+                        .WithMany("Languages")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MMSA.DAL.Entities.ProgrammingLanguage", "ProgrammingLanguage")
+                        .WithMany()
+                        .HasForeignKey("ProgrammingLanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("ProgrammingLanguage");
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.Page", b =>
+                {
+                    b.HasOne("MMSA.DAL.Entities.Course", "Course")
+                        .WithMany("Pages")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.Question", b =>
+                {
+                    b.HasOne("MMSA.DAL.Entities.Exercise", "Exercise")
+                        .WithMany("Questions")
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.QuestionOption", b =>
+                {
+                    b.HasOne("MMSA.DAL.Entities.Question", "Question")
+                        .WithMany("Options")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("MMSA.DAL.Entities.RefreshToken", b =>
                 {
                     b.HasOne("MMSA.DAL.Entities.ApplicationUser", "User")
@@ -540,9 +840,26 @@ namespace MMSA.DAL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("MMSA.DAL.Entities.Course", b =>
+                {
+                    b.Navigation("Languages");
+
+                    b.Navigation("Pages");
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.Exercise", b =>
+                {
+                    b.Navigation("Questions");
+                });
+
             modelBuilder.Entity("MMSA.DAL.Entities.Page", b =>
                 {
                     b.Navigation("SubPages");
+                });
+
+            modelBuilder.Entity("MMSA.DAL.Entities.Question", b =>
+                {
+                    b.Navigation("Options");
                 });
 #pragma warning restore 612, 618
         }
