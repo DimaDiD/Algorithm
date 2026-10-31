@@ -36,8 +36,19 @@ public class ExercisesController : CourseEditingControllerBase
         Handle(async () =>
         {
             var isCourseEditor = await CanEditAsync(await _courseService.GetAccessForExerciseAsync(id));
-            return Ok(await _exerciseService.CheckAsync(id, request, recordSubmission: !isCourseEditor));
+            var context = new ExerciseCheckContext(
+                RecordSubmission: !isCourseEditor,
+                ClientKey: RateLimitPolicies.GetClientKey(HttpContext));
+
+            return Ok(await _exerciseService.CheckAsync(id, request, context, HttpContext.RequestAborted));
         });
+
+    [AllowAnonymous]
+    [HttpGet("ai-status")]
+    public IActionResult GetAiStatus()
+    {
+        return Ok(_exerciseService.GetAiStatus());
+    }
 
     [AllowAnonymous]
     [HttpGet("progress")]

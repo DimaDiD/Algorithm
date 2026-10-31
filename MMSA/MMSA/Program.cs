@@ -1,14 +1,17 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using MMSA.Authorization;
 using MMSA.BLL.Options;
 using MMSA.BLL.Services.Implementation;
+using MMSA.BLL.Services.Implementation.Ai;
 using MMSA.BLL.Services.Implementation.Auth;
 using MMSA.BLL.Services.Interfaces;
+using MMSA.BLL.Services.Interfaces.Ai;
 using MMSA.BLL.Services.Interfaces.Auth;
 using MMSA.DAL.Constants;
 using MMSA.DAL.Entities;
@@ -151,6 +154,20 @@ builder.Services.AddScoped<IProgrammingTopicRepository, ProgrammingTopicReposito
 builder.Services.AddScoped<IExerciseRepository, ExerciseRepository>();
 builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
+
+builder.Services.AddOptions<AiReviewOptions>()
+    .Bind(builder.Configuration.GetSection(AiReviewOptions.SectionName))
+    .Validate(o => !o.Enabled || !string.IsNullOrWhiteSpace(o.ApiKey), "AiReview:ApiKey is required when AiReview:Enabled is true")
+    .Validate(o => o.MaxAnswerLength is > 0 and <= 10000, "AiReview:MaxAnswerLength must be between 1 and 10000")
+    .ValidateOnStart();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IAiUsageLimiter, AiUsageLimiter>();
+builder.Services.AddHttpClient<IAiReviewService, ClaudeAiReviewService>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<AiReviewOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+});
 builder.Services.AddScoped<IProgrammingLanguageRepository, ProgrammingLanguageRepository>();
 builder.Services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
 builder.Services.AddScoped<IPageContentService, PageContentService>();

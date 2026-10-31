@@ -30,7 +30,10 @@ public class QuestionStatsDTO
     public string Text { get; set; } = string.Empty;
     public int Answered { get; set; }
     public int Correct { get; set; }
+    public int Partial { get; set; }
     public double? CorrectPercent { get; set; }
+    public double? AveragePoints { get; set; }
+    public int MaxPoints { get; set; }
     public List<OptionStatsDTO> Options { get; set; } = new();
     public List<WrongAnswerStatsDTO> WrongAnswers { get; set; } = new();
 }

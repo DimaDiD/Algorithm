@@ -9,7 +9,12 @@ public interface IExerciseService
     Task<int> CreateAsync(ExerciseEditDTO exercise);
     Task UpdateAsync(ExerciseEditDTO exercise);
     Task DeleteAsync(int id);
-    Task<ExerciseCheckResultDTO> CheckAsync(int id, ExerciseCheckRequestDTO request, bool recordSubmission);
+    Task<ExerciseCheckResultDTO> CheckAsync(
+        int id,
+        ExerciseCheckRequestDTO request,
+        ExerciseCheckContext context,
+        CancellationToken cancellationToken);
+    AiStatusDTO GetAiStatus();
     Task<List<ExerciseProgressDTO>> GetProgressAsync(int pageId, int? subPageId, Guid clientId);
     Task<ExerciseStatsDTO?> GetStatsAsync(int id);
 }

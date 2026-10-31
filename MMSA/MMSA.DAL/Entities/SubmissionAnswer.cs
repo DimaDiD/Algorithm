@@ -19,4 +19,6 @@ public class SubmissionAnswer
     public string? SelectedOptionIds { get; set; }
 
     public string? AnswerText { get; set; }
+
+    public string? AiFeedback { get; set; }
 }

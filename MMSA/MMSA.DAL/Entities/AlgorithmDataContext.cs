@@ -210,7 +210,8 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
             entity.Property(e => e.SelectedOptionIds).HasMaxLength(200);
-            entity.Property(e => e.AnswerText).HasMaxLength(1000);
+            entity.Property(e => e.AnswerText).HasMaxLength(4000);
+            entity.Property(e => e.AiFeedback).HasMaxLength(2000);
 
             entity.HasIndex(e => e.QuestionId);
         });
