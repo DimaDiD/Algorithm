@@ -8,6 +8,17 @@ public class ExerciseProgressDTO
     public int LastScore { get; set; }
     public int MaxScore { get; set; }
     public DateTime LastSubmittedAtUtc { get; set; }
+    public List<TeacherReviewDTO> TeacherReviews { get; set; } = new();
+}
+
+public class TeacherReviewDTO
+{
+    public int QuestionId { get; set; }
+    public int Points { get; set; }
+    public int MaxPoints { get; set; }
+    public bool IsOverridden { get; set; }
+    public string? Comment { get; set; }
+    public DateTime ReviewedAtUtc { get; set; }
 }
 
 public class ExerciseStatsDTO

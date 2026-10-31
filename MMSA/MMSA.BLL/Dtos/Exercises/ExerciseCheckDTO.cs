@@ -62,4 +62,7 @@ public static class QuestionResultStatus
     public const string Incorrect = "Incorrect";
     public const string PartiallyCorrect = "PartiallyCorrect";
     public const string NotChecked = "NotChecked";
+
+    public static string FromPoints(int points, int maxPoints) =>
+        points >= maxPoints ? Correct : points <= 0 ? Incorrect : PartiallyCorrect;
 }

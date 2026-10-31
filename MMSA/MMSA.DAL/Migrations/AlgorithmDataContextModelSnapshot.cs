@@ -588,6 +588,9 @@ namespace MMSA.DAL.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<int?>("AiPoints")
+                        .HasColumnType("int");
+
                     b.Property<string>("AnswerText")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
@@ -601,6 +604,17 @@ namespace MMSA.DAL.Migrations
                     b.Property<int>("QuestionId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ReviewStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("SelectedOptionIds")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -613,9 +627,15 @@ namespace MMSA.DAL.Migrations
                     b.Property<int>("SubmissionId")
                         .HasColumnType("int");
 
+                    b.Property<string>("TeacherComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("QuestionId");
+
+                    b.HasIndex("ReviewStatus");
 
                     b.HasIndex("SubmissionId");
 

@@ -21,4 +21,14 @@ public class SubmissionAnswer
     public string? AnswerText { get; set; }
 
     public string? AiFeedback { get; set; }
+
+    public int? AiPoints { get; set; }
+
+    public string? ReviewStatus { get; set; }
+
+    public string? TeacherComment { get; set; }
+
+    public DateTime? ReviewedAtUtc { get; set; }
+
+    public string? ReviewedByUserId { get; set; }
 }

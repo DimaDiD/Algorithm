@@ -114,6 +114,7 @@ public sealed class CourseService : ICourseService
     public Task<CourseAccess?> GetAccessForTopicAsync(int pageId, int? subPageId) => _courseRepository.GetAccessForTopicAsync(pageId, subPageId);
     public Task<CourseAccess?> GetAccessForContentAsync(int pageContentId) => _courseRepository.GetAccessForContentAsync(pageContentId);
     public Task<CourseAccess?> GetAccessForExerciseAsync(int exerciseId) => _courseRepository.GetAccessForExerciseAsync(exerciseId);
+    public Task<CourseAccess?> GetAccessForSubmissionAnswerAsync(int answerId) => _courseRepository.GetAccessForSubmissionAnswerAsync(answerId);
 
     private async Task<List<ProgrammingLanguage>> ResolveLanguagesAsync(IEnumerable<string>? codes)
     {

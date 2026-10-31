@@ -17,6 +17,7 @@ public interface ICourseRepository : IBaseRepository<Course>
     Task<CourseAccess?> GetAccessForTopicAsync(int pageId, int? subPageId);
     Task<CourseAccess?> GetAccessForContentAsync(int pageContentId);
     Task<CourseAccess?> GetAccessForExerciseAsync(int exerciseId);
+    Task<CourseAccess?> GetAccessForSubmissionAnswerAsync(int answerId);
 
     Task DeleteCourseTreeAsync(int courseId);
     Task DeletePageTreeAsync(int pageId);

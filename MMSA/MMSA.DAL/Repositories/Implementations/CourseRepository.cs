@@ -97,6 +97,13 @@ public class CourseRepository : BaseRepository<Course>, ICourseRepository
          select new CourseAccess(page.CourseId, page.Course.OwnerId))
         .FirstOrDefaultAsync();
 
+    public Task<CourseAccess?> GetAccessForSubmissionAnswerAsync(int answerId) =>
+        (from answer in _dataContext.SubmissionAnswers
+         join page in _dataContext.Pages on answer.Submission.Exercise.PageId equals page.Id
+         where answer.Id == answerId
+         select new CourseAccess(page.CourseId, page.Course.OwnerId))
+        .FirstOrDefaultAsync();
+
     public async Task DeleteCourseTreeAsync(int courseId)
     {
         await using var transaction = await _dataContext.Database.BeginTransactionAsync();

@@ -154,6 +154,8 @@ builder.Services.AddScoped<IProgrammingTopicRepository, ProgrammingTopicReposito
 builder.Services.AddScoped<IExerciseRepository, ExerciseRepository>();
 builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<ICourseDashboardService, CourseDashboardService>();
 
 builder.Services.AddOptions<AiReviewOptions>()
     .Bind(builder.Configuration.GetSection(AiReviewOptions.SectionName))
@@ -172,6 +174,7 @@ builder.Services.AddHttpClient<IAiReviewService, ClaudeAiReviewService>((service
 builder.Services.AddScoped<IProgrammingLanguageRepository, ProgrammingLanguageRepository>();
 builder.Services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
 builder.Services.AddScoped<IPageContentService, PageContentService>();
+builder.Services.AddSingleton<IHtmlContentSanitizer, HtmlContentSanitizer>();
 builder.Services.AddScoped<ISubPageRepository, SubPageRepository>();
 builder.Services.AddScoped<ISubPageService, SubPageService>();
 

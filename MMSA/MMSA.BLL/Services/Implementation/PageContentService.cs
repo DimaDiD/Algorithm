@@ -16,15 +16,18 @@ namespace MMSA.BLL.Services.Implementation
         private readonly IPageContentRepository _pageContentRepository;
         private readonly IProgrammingTopicRepository _programmingTopicRepository;
         private readonly IMapper _mapper;
+        private readonly IHtmlContentSanitizer _htmlSanitizer;
 
         public PageContentService(
             IPageContentRepository pageContentRepository,
             IProgrammingTopicRepository programmingTopicRepository,
-            IMapper mapper)
+            IMapper mapper,
+            IHtmlContentSanitizer htmlSanitizer)
         {
             _pageContentRepository = pageContentRepository;
             _programmingTopicRepository = programmingTopicRepository;
             _mapper = mapper;
+            _htmlSanitizer = htmlSanitizer;
         }
 
         public async Task<List<PageContentDTO>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId, string codeStatus)
@@ -53,6 +56,7 @@ namespace MMSA.BLL.Services.Implementation
             {
                 var topicNames = NormalizeTopics(pageContentDto);
                 var pageContent = _mapper.Map<PageContent>(pageContentDto);
+                pageContent.Text = SanitizeText(pageContentDto);
 
                 var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && 
                     pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
@@ -81,7 +85,7 @@ namespace MMSA.BLL.Services.Implementation
                 var pageContent = await _pageContentRepository.GetWithTopicsAsync(pageContentDto.Id)
                     ?? throw new KeyNotFoundException("Блок не знайдено.");
 
-                pageContent.Text = pageContentDto.Text;
+                pageContent.Text = SanitizeText(pageContentDto);
                 pageContent.TextType = pageContentDto.TextType;
                 pageContent.CodeType = pageContentDto.CodeType;
 
@@ -120,6 +124,9 @@ namespace MMSA.BLL.Services.Implementation
 
         public Task<List<string>> GetProgrammingTopicsAsync() =>
             _programmingTopicRepository.GetAllNamesAsync();
+
+        private string SanitizeText(PageContentDTO pageContent) =>
+            pageContent.TextType == CodeType ? pageContent.Text : _htmlSanitizer.Sanitize(pageContent.Text);
 
         private static string[] NormalizeTopics(PageContentDTO pageContent)
         {

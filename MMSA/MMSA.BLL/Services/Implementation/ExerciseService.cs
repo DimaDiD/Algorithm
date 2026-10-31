@@ -7,6 +7,7 @@ using MMSA.BLL.Dtos.Exercises;
 using MMSA.BLL.Options;
 using MMSA.BLL.Services.Interfaces;
 using MMSA.BLL.Services.Interfaces.Ai;
+using MMSA.DAL.Constants;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Interfaces;
 
@@ -23,6 +24,7 @@ public sealed class ExerciseService : IExerciseService
     private readonly ICourseRepository _courseRepository;
     private readonly ISubmissionRepository _submissionRepository;
     private readonly IProgrammingLanguageRepository _languageRepository;
+    private readonly IReviewRepository _reviewRepository;
     private readonly IAiReviewService _aiReviewService;
     private readonly IAiUsageLimiter _aiUsageLimiter;
     private readonly IMemoryCache _cache;
@@ -34,6 +36,7 @@ public sealed class ExerciseService : IExerciseService
         ICourseRepository courseRepository,
         ISubmissionRepository submissionRepository,
         IProgrammingLanguageRepository languageRepository,
+        IReviewRepository reviewRepository,
         IAiReviewService aiReviewService,
         IAiUsageLimiter aiUsageLimiter,
         IMemoryCache cache,
@@ -44,6 +47,7 @@ public sealed class ExerciseService : IExerciseService
         _courseRepository = courseRepository;
         _submissionRepository = submissionRepository;
         _languageRepository = languageRepository;
+        _reviewRepository = reviewRepository;
         _aiReviewService = aiReviewService;
         _aiUsageLimiter = aiUsageLimiter;
         _cache = cache;
@@ -196,6 +200,8 @@ public sealed class ExerciseService : IExerciseService
 
         var exerciseIds = (await _exerciseRepository.GetByTopicAsync(pageId, subPageId)).Select(e => e.Id).ToList();
         var submissions = await _submissionRepository.GetForClientAsync(clientId, exerciseIds);
+        var reviews = (await _reviewRepository.GetReviewedAnswersForClientAsync(clientId, exerciseIds))
+            .ToLookup(answer => answer.Submission.ExerciseId);
 
         return submissions
             .GroupBy(s => s.ExerciseId)
@@ -209,7 +215,20 @@ public sealed class ExerciseService : IExerciseService
                     BestScore = group.Max(s => s.Score),
                     LastScore = last.Score,
                     MaxScore = last.MaxScore,
-                    LastSubmittedAtUtc = last.SubmittedAtUtc
+                    LastSubmittedAtUtc = last.SubmittedAtUtc,
+                    TeacherReviews = reviews[group.Key]
+                        .GroupBy(answer => answer.QuestionId)
+                        .Select(answers => answers.MaxBy(answer => answer.ReviewedAtUtc)!)
+                        .Select(answer => new TeacherReviewDTO
+                        {
+                            QuestionId = answer.QuestionId,
+                            Points = answer.EarnedPoints,
+                            MaxPoints = answer.MaxPoints,
+                            IsOverridden = answer.ReviewStatus == ReviewStatuses.Overridden,
+                            Comment = answer.TeacherComment,
+                            ReviewedAtUtc = answer.ReviewedAtUtc!.Value
+                        })
+                        .ToList()
                 };
             })
             .ToList();
@@ -374,13 +393,18 @@ public sealed class ExerciseService : IExerciseService
                 SelectedOptionIds = (type is QuestionType.SingleChoice or QuestionType.MultipleChoice) && answer is not null
                     ? string.Join(",", answer.SelectedOptionIds.Distinct().Take(10))
                     : null,
-                AnswerText = Truncate(answer?.Text?.Trim(), StoredAnswerMaxLength),
-                AiFeedback = questionResult.IsAiReviewed ? Truncate(ComposeAiFeedback(questionResult), 4000) : null
+                AnswerText = Truncate(PrepareAiAnswer(questions[questionResult.QuestionId], answer?.Text), StoredAnswerMaxLength),
+                AiFeedback = questionResult.IsAiReviewed ? Truncate(ComposeAiFeedback(questionResult), 4000) : null,
+                AiPoints = questionResult.IsAiReviewed ? questionResult.EarnedPoints : null,
+                ReviewStatus = NeedsTeacherReview(type, answer) ? ReviewStatuses.Pending : null
             });
         }
 
         await _submissionRepository.InsertAsync(submission, true);
     }
+
+    private static bool NeedsTeacherReview(QuestionType type, QuestionAnswerDTO? answer) =>
+        (type is QuestionType.OpenAnswer or QuestionType.Code) && !string.IsNullOrWhiteSpace(answer?.Text);
 
     private static string ComposeAiFeedback(QuestionResultDTO result) =>
         result.Issues.Count == 0

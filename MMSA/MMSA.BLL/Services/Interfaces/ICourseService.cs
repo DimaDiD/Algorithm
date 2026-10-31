@@ -18,4 +18,5 @@ public interface ICourseService
     Task<CourseAccess?> GetAccessForTopicAsync(int pageId, int? subPageId);
     Task<CourseAccess?> GetAccessForContentAsync(int pageContentId);
     Task<CourseAccess?> GetAccessForExerciseAsync(int exerciseId);
+    Task<CourseAccess?> GetAccessForSubmissionAnswerAsync(int answerId);
 }
