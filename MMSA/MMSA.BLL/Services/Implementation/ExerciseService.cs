@@ -22,6 +22,7 @@ public sealed class ExerciseService : IExerciseService
     private readonly IExerciseRepository _exerciseRepository;
     private readonly ICourseRepository _courseRepository;
     private readonly ISubmissionRepository _submissionRepository;
+    private readonly IProgrammingLanguageRepository _languageRepository;
     private readonly IAiReviewService _aiReviewService;
     private readonly IAiUsageLimiter _aiUsageLimiter;
     private readonly IMemoryCache _cache;
@@ -32,6 +33,7 @@ public sealed class ExerciseService : IExerciseService
         IExerciseRepository exerciseRepository,
         ICourseRepository courseRepository,
         ISubmissionRepository submissionRepository,
+        IProgrammingLanguageRepository languageRepository,
         IAiReviewService aiReviewService,
         IAiUsageLimiter aiUsageLimiter,
         IMemoryCache cache,
@@ -41,6 +43,7 @@ public sealed class ExerciseService : IExerciseService
         _exerciseRepository = exerciseRepository;
         _courseRepository = courseRepository;
         _submissionRepository = submissionRepository;
+        _languageRepository = languageRepository;
         _aiReviewService = aiReviewService;
         _aiUsageLimiter = aiUsageLimiter;
         _cache = cache;
@@ -133,7 +136,8 @@ public sealed class ExerciseService : IExerciseService
     public AiStatusDTO GetAiStatus() => new()
     {
         Enabled = _aiReviewService.IsEnabled,
-        MaxAnswerLength = _aiOptions.MaxAnswerLength
+        MaxAnswerLength = _aiOptions.MaxAnswerLength,
+        MaxCodeLength = _aiOptions.MaxCodeLength
     };
 
     public async Task<ExerciseCheckResultDTO> CheckAsync(
@@ -150,13 +154,17 @@ public sealed class ExerciseService : IExerciseService
             .ToDictionary(g => g.Key, g => g.First());
 
         var questions = exercise.Questions.OrderBy(q => q.Order).ToList();
-        ValidateOpenAnswerLengths(questions, answers);
+        ValidateAiAnswerLengths(questions, answers);
+
+        var languageNames = questions.Any(q => q.Type == QuestionType.Code)
+            ? (await _languageRepository.GetAllOrderedAsync()).ToDictionary(l => l.Code, l => l.Name)
+            : new Dictionary<string, string>();
 
         var aiReviews = questions
-            .Where(q => q.Type == QuestionType.OpenAnswer)
+            .Where(q => q.Type is QuestionType.OpenAnswer or QuestionType.Code)
             .ToDictionary(
                 q => q.Id,
-                q => GradeOpenAnswerAsync(q, answers.GetValueOrDefault(q.Id), context.ClientKey, cancellationToken));
+                q => GradeWithAiAsync(q, answers.GetValueOrDefault(q.Id), languageNames, context.ClientKey, cancellationToken));
 
         var result = new ExerciseCheckResultDTO();
 
@@ -238,32 +246,47 @@ public sealed class ExerciseService : IExerciseService
         };
     }
 
-    private void ValidateOpenAnswerLengths(IEnumerable<Question> questions, IReadOnlyDictionary<int, QuestionAnswerDTO> answers)
+    private void ValidateAiAnswerLengths(IEnumerable<Question> questions, IReadOnlyDictionary<int, QuestionAnswerDTO> answers)
     {
         var index = 0;
         foreach (var question in questions)
         {
             index++;
-            if (question.Type != QuestionType.OpenAnswer || !answers.TryGetValue(question.Id, out var answer))
+            if (question.Type is not (QuestionType.OpenAnswer or QuestionType.Code) || !answers.TryGetValue(question.Id, out var answer))
                 continue;
 
-            if ((answer.Text?.Trim().Length ?? 0) > _aiOptions.MaxAnswerLength)
-                throw new ArgumentException($"Питання {index}: відповідь задовга (максимум {_aiOptions.MaxAnswerLength} символів).");
+            var limit = question.Type == QuestionType.Code ? _aiOptions.MaxCodeLength : _aiOptions.MaxAnswerLength;
+            if (PrepareAiAnswer(question, answer.Text).Length > limit)
+                throw new ArgumentException($"Питання {index}: відповідь задовга (максимум {limit} символів).");
         }
     }
 
-    private async Task<QuestionResultDTO> GradeOpenAnswerAsync(
+    private static string PrepareAiAnswer(Question question, string? text) =>
+        question.Type == QuestionType.Code
+            ? (text ?? string.Empty).Replace("\r\n", "\n").TrimEnd()
+            : (text ?? string.Empty).Trim();
+
+    private async Task<QuestionResultDTO> GradeWithAiAsync(
         Question question,
         QuestionAnswerDTO? answer,
+        IReadOnlyDictionary<string, string> languageNames,
         string clientKey,
         CancellationToken cancellationToken)
     {
         var result = new QuestionResultDTO { QuestionId = question.Id, MaxPoints = question.Points };
-        var text = answer?.Text?.Trim() ?? string.Empty;
+        var text = PrepareAiAnswer(question, answer?.Text);
+        var isCode = question.Type == QuestionType.Code;
 
-        if (text.Length == 0)
+        if (string.IsNullOrWhiteSpace(text))
         {
             result.Status = QuestionResultStatus.Incorrect;
+            return result;
+        }
+
+        if (isCode && text == PrepareAiAnswer(question, question.StarterCode))
+        {
+            result.Status = QuestionResultStatus.Incorrect;
+            result.Feedback = "Ви ще не змінили заготовку коду — допишіть рішення й перевірте знову.";
             return result;
         }
 
@@ -276,8 +299,12 @@ public sealed class ExerciseService : IExerciseService
             if (!_aiUsageLimiter.TryAcquire(clientKey))
                 return NotChecked(result, "Ліміт AI-перевірок на сьогодні вичерпано. Спробуйте завтра.");
 
+            var languageName = isCode
+                ? languageNames.GetValueOrDefault(question.CodeLanguage ?? string.Empty) ?? question.CodeLanguage ?? "unknown"
+                : null;
+
             verdict = await _aiReviewService.ReviewAsync(
-                new AiReviewRequest(question.Text, question.ReferenceAnswer, question.Rubric, question.Points, text),
+                new AiReviewRequest(question.Text, question.ReferenceAnswer, question.Rubric, question.Points, text, languageName),
                 cancellationToken);
 
             if (verdict is null)
@@ -289,6 +316,7 @@ public sealed class ExerciseService : IExerciseService
         result.IsAiReviewed = true;
         result.EarnedPoints = verdict.Points;
         result.Feedback = verdict.Feedback;
+        result.Issues = verdict.Issues.Select(issue => new CodeIssueDTO { Line = issue.Line, Message = issue.Message }).ToList();
         result.Status = verdict.Points >= question.Points
             ? QuestionResultStatus.Correct
             : verdict.Points == 0 ? QuestionResultStatus.Incorrect : QuestionResultStatus.PartiallyCorrect;
@@ -308,9 +336,10 @@ public sealed class ExerciseService : IExerciseService
             question.Id,
             question.Points,
             question.Text,
+            question.CodeLanguage ?? string.Empty,
             question.ReferenceAnswer ?? string.Empty,
             question.Rubric ?? string.Empty,
-            Whitespace.Replace(answerText, " "));
+            question.Type == QuestionType.Code ? answerText : Whitespace.Replace(answerText, " "));
 
         return "ai-review:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source)));
     }
@@ -346,12 +375,17 @@ public sealed class ExerciseService : IExerciseService
                     ? string.Join(",", answer.SelectedOptionIds.Distinct().Take(10))
                     : null,
                 AnswerText = Truncate(answer?.Text?.Trim(), StoredAnswerMaxLength),
-                AiFeedback = questionResult.IsAiReviewed ? questionResult.Feedback : null
+                AiFeedback = questionResult.IsAiReviewed ? Truncate(ComposeAiFeedback(questionResult), 4000) : null
             });
         }
 
         await _submissionRepository.InsertAsync(submission, true);
     }
+
+    private static string ComposeAiFeedback(QuestionResultDTO result) =>
+        result.Issues.Count == 0
+            ? result.Feedback ?? string.Empty
+            : $"{result.Feedback}\n{string.Join("\n", result.Issues.Select(issue => $"Рядок {issue.Line}: {issue.Message}"))}";
 
     private static QuestionStatsDTO BuildQuestionStats(Question question, List<SubmissionAnswer> answers)
     {
@@ -460,8 +494,14 @@ public sealed class ExerciseService : IExerciseService
         question.Points = dto.Points;
         question.Order = order;
         question.CodeLanguage = type == QuestionType.Code ? dto.CodeLanguage : null;
-        question.ReferenceAnswer = type is QuestionType.OpenAnswer or QuestionType.Code ? NullIfEmpty(dto.ReferenceAnswer) : null;
+        question.ReferenceAnswer = type switch
+        {
+            QuestionType.OpenAnswer => NullIfEmpty(dto.ReferenceAnswer),
+            QuestionType.Code => NullIfBlankCode(dto.ReferenceAnswer),
+            _ => null
+        };
         question.Rubric = type is QuestionType.OpenAnswer or QuestionType.Code ? NullIfEmpty(dto.Rubric) : null;
+        question.StarterCode = type == QuestionType.Code ? NullIfBlankCode(dto.StarterCode) : null;
 
         var optionDtos = HasOptions(type) ? dto.Options : new List<QuestionOptionEditDTO>();
 
@@ -538,7 +578,13 @@ public sealed class ExerciseService : IExerciseService
 
                 case QuestionType.Code:
                     if (question.CodeLanguage is null || !codeLanguages.Contains(question.CodeLanguage))
-                        throw new ArgumentException($"{label}: оберіть мову програмування.");
+                        throw new ArgumentException($"{label}: оберіть мову програмування з мов курсу.");
+                    if (string.IsNullOrWhiteSpace(question.ReferenceAnswer) && string.IsNullOrWhiteSpace(question.Rubric))
+                        throw new ArgumentException($"{label}: вкажіть еталонне рішення або критерії оцінювання — за ними працює AI-перевірка.");
+                    if ((question.ReferenceAnswer?.Length ?? 0) > TeacherFieldMaxLength
+                        || (question.Rubric?.Length ?? 0) > TeacherFieldMaxLength
+                        || (question.StarterCode?.Length ?? 0) > TeacherFieldMaxLength)
+                        throw new ArgumentException($"{label}: еталон, критерії й заготовка — не довше {TeacherFieldMaxLength} символів.");
                     break;
             }
         }
@@ -546,6 +592,9 @@ public sealed class ExerciseService : IExerciseService
 
     private static bool HasOptions(QuestionType type) =>
         type is QuestionType.SingleChoice or QuestionType.MultipleChoice or QuestionType.ShortAnswer;
+
+    private static string? NullIfBlankCode(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Replace("\r\n", "\n").TrimEnd();
 
     private static string? NullIfEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -566,6 +615,7 @@ public sealed class ExerciseService : IExerciseService
                 Points = q.Points,
                 Order = q.Order,
                 CodeLanguage = q.CodeLanguage,
+                StarterCode = q.Type == QuestionType.Code ? q.StarterCode : null,
                 Options = q.Type is QuestionType.SingleChoice or QuestionType.MultipleChoice
                     ? q.Options.OrderBy(o => o.Order).Select(o => new QuestionOptionDTO { Id = o.Id, Text = o.Text }).ToList()
                     : new List<QuestionOptionDTO>()
@@ -592,6 +642,7 @@ public sealed class ExerciseService : IExerciseService
                 CodeLanguage = q.CodeLanguage,
                 ReferenceAnswer = q.ReferenceAnswer,
                 Rubric = q.Rubric,
+                StarterCode = q.StarterCode,
                 Options = q.Options
                     .OrderBy(o => o.Order)
                     .Select(o => new QuestionOptionEditDTO { Id = o.Id, Text = o.Text, IsCorrect = o.IsCorrect })

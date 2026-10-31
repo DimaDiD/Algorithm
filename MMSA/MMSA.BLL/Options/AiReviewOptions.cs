@@ -12,6 +12,7 @@ public sealed class AiReviewOptions
     public int MaxOutputTokens { get; set; } = 600;
     public int TimeoutSeconds { get; set; } = 30;
     public int MaxAnswerLength { get; set; } = 2000;
+    public int MaxCodeLength { get; set; } = 4000;
     public int DailyLimitPerClient { get; set; } = 50;
     public int DailyLimitTotal { get; set; } = 1000;
     public int CacheHours { get; set; } = 24;

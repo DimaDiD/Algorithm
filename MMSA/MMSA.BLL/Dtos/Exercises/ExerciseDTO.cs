@@ -17,6 +17,7 @@ public class QuestionDTO
     public int Points { get; set; }
     public int Order { get; set; }
     public string? CodeLanguage { get; set; }
+    public string? StarterCode { get; set; }
     public List<QuestionOptionDTO> Options { get; set; } = new();
 }
 

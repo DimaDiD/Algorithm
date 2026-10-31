@@ -20,6 +20,8 @@ public class Question
 
     public string? Rubric { get; set; }
 
+    public string? StarterCode { get; set; }
+
     public virtual Exercise Exercise { get; set; } = null!;
 
     public virtual ICollection<QuestionOption> Options { get; set; } = new List<QuestionOption>();

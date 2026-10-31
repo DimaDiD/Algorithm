@@ -35,12 +35,14 @@ public class QuestionEditDTO
     [Range(1, 100)]
     public int Points { get; set; } = 1;
 
-    [MaxLength(20)]
+    [MaxLength(30)]
     public string? CodeLanguage { get; set; }
 
     public string? ReferenceAnswer { get; set; }
 
     public string? Rubric { get; set; }
+
+    public string? StarterCode { get; set; }
 
     [MaxLength(10)]
     public List<QuestionOptionEditDTO> Options { get; set; } = new();

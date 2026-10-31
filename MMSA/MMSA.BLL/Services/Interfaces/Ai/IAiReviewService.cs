@@ -5,9 +5,12 @@ public sealed record AiReviewRequest(
     string? ReferenceAnswer,
     string? Rubric,
     int MaxPoints,
-    string StudentAnswer);
+    string StudentAnswer,
+    string? CodeLanguageName = null);
 
-public sealed record AiReviewVerdict(int Points, string Feedback);
+public sealed record AiCodeIssue(int Line, string Message);
+
+public sealed record AiReviewVerdict(int Points, string Feedback, IReadOnlyList<AiCodeIssue> Issues);
 
 public interface IAiReviewService
 {

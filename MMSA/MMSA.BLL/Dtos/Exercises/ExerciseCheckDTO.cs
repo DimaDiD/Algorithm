@@ -38,6 +38,13 @@ public class QuestionResultDTO
     public List<string> AcceptedAnswers { get; set; } = new();
     public string? Feedback { get; set; }
     public bool IsAiReviewed { get; set; }
+    public List<CodeIssueDTO> Issues { get; set; } = new();
+}
+
+public class CodeIssueDTO
+{
+    public int Line { get; set; }
+    public string Message { get; set; } = string.Empty;
 }
 
 public sealed record ExerciseCheckContext(bool RecordSubmission, string ClientKey);
@@ -46,6 +53,7 @@ public class AiStatusDTO
 {
     public bool Enabled { get; set; }
     public int MaxAnswerLength { get; set; }
+    public int MaxCodeLength { get; set; }
 }
 
 public static class QuestionResultStatus

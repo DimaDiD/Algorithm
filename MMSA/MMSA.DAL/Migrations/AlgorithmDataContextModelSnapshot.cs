@@ -409,8 +409,8 @@ namespace MMSA.DAL.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CodeLanguage")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<int>("ExerciseId")
                         .HasColumnType("int");
@@ -426,6 +426,10 @@ namespace MMSA.DAL.Migrations
 
                     b.Property<string>("Rubric")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StarterCode")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -581,8 +585,8 @@ namespace MMSA.DAL.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AiFeedback")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("AnswerText")
                         .HasMaxLength(4000)

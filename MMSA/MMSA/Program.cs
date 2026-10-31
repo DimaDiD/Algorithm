@@ -159,6 +159,7 @@ builder.Services.AddOptions<AiReviewOptions>()
     .Bind(builder.Configuration.GetSection(AiReviewOptions.SectionName))
     .Validate(o => !o.Enabled || !string.IsNullOrWhiteSpace(o.ApiKey), "AiReview:ApiKey is required when AiReview:Enabled is true")
     .Validate(o => o.MaxAnswerLength is > 0 and <= 10000, "AiReview:MaxAnswerLength must be between 1 and 10000")
+    .Validate(o => o.MaxCodeLength is > 0 and <= 10000, "AiReview:MaxCodeLength must be between 1 and 10000")
     .ValidateOnStart();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IAiUsageLimiter, AiUsageLimiter>();
