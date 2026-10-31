@@ -81,11 +81,17 @@ public sealed class AuthService : IAuthService
             return AuthResult.Failure(InvalidRefreshToken);
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var isGraceReuse = false;
 
         if (stored.RevokedAtUtc is not null)
         {
-            await RevokeFamilyAsync(stored.FamilyId, now);
-            return AuthResult.Failure(InvalidRefreshToken);
+            if (!await IsWithinRotationGraceAsync(stored, now))
+            {
+                await RevokeFamilyAsync(stored.FamilyId, now);
+                return AuthResult.Failure(InvalidRefreshToken);
+            }
+
+            isGraceReuse = true;
         }
 
         if (stored.ExpiresAtUtc <= now)
@@ -99,8 +105,22 @@ public sealed class AuthService : IAuthService
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-        var response = await IssueTokensAsync(user, roles, stored.FamilyId, replacedToken: stored);
+        var response = await IssueTokensAsync(user, roles, stored.FamilyId, replacedToken: isGraceReuse ? null : stored);
         return AuthResult.Success(response);
+    }
+
+    private async Task<bool> IsWithinRotationGraceAsync(RefreshToken stored, DateTime now)
+    {
+        if (stored.ReplacedByTokenId is null || stored.RevokedAtUtc is null)
+            return false;
+
+        if (now - stored.RevokedAtUtc.Value > TimeSpan.FromSeconds(_authTokenOptions.RefreshReuseGraceSeconds))
+            return false;
+
+        var activeToken = await _refreshTokenRepository.GetFirstOrDefaultAsync(
+            t => t.FamilyId == stored.FamilyId && t.RevokedAtUtc == null);
+
+        return activeToken is not null;
     }
 
     public async Task LogoutAsync(RefreshRequestDTO request)

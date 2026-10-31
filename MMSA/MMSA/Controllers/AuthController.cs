@@ -70,7 +70,6 @@ namespace MMSA.Controllers
             var result = await _authService.RefreshAsync(new RefreshRequestDTO { RefreshToken = refreshToken });
             if (!result.Succeeded)
             {
-                // Токен недійсний (прострочений, анульований, reuse detection) - прибираємо його з браузера.
                 DeleteRefreshCookie();
                 return Unauthorized(new { errors = result.Errors });
             }

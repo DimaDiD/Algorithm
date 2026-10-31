@@ -7,6 +7,7 @@
         public string SigningKey { get; set; } = string.Empty;
         public int AccessTokenMinutes { get; set; } = 15;
         public int RefreshTokenDays { get; set; } = 7;
+        public int RefreshReuseGraceSeconds { get; set; } = 30;
 
         public const string SectionName = "Jwt";
     }
