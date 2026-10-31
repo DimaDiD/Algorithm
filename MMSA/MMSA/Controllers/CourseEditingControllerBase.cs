@@ -14,6 +14,15 @@ public abstract class CourseEditingControllerBase : ControllerBase
     protected CurrentUser CurrentUser =>
         new(User.FindFirstValue(JwtRegisteredClaimNames.Sub), User.IsInRole(Roles.Admin));
 
+    protected async Task<bool> CanEditAsync(CourseAccess? access)
+    {
+        if (access is null || User.Identity?.IsAuthenticated != true)
+            return false;
+
+        var authorizationService = HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+        return (await authorizationService.AuthorizeAsync(User, access, CourseOwnerRequirement.Instance)).Succeeded;
+    }
+
     protected async Task<IActionResult?> EnsureCanEditAsync(Task<CourseAccess?> accessTask)
     {
         var access = await accessTask;

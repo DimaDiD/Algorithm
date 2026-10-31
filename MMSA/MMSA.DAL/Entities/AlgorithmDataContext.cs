@@ -32,6 +32,10 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
 
     public virtual DbSet<CourseLanguage> CourseLanguages { get; set; }
 
+    public virtual DbSet<Submission> Submissions { get; set; }
+
+    public virtual DbSet<SubmissionAnswer> SubmissionAnswers { get; set; }
+
     public virtual DbSet<Question> Questions { get; set; }
 
     public virtual DbSet<QuestionOption> QuestionOptions { get; set; }
@@ -181,6 +185,34 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
                 .WithOne(q => q.Exercise)
                 .HasForeignKey(q => q.ExerciseId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Submissions)
+                .WithOne(s => s.Exercise)
+                .HasForeignKey(s => s.ExerciseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Submission>(entity =>
+        {
+            entity.ToTable("Submission");
+
+            entity.HasIndex(e => new { e.ExerciseId, e.ClientId });
+
+            entity.HasMany(e => e.Answers)
+                .WithOne(a => a.Submission)
+                .HasForeignKey(a => a.SubmissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SubmissionAnswer>(entity =>
+        {
+            entity.ToTable("SubmissionAnswer");
+
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.SelectedOptionIds).HasMaxLength(200);
+            entity.Property(e => e.AnswerText).HasMaxLength(1000);
+
+            entity.HasIndex(e => e.QuestionId);
         });
 
         modelBuilder.Entity<Question>(entity =>

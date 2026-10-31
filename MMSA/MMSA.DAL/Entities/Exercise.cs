@@ -17,4 +17,6 @@ public class Exercise
     public DateTime CreatedAtUtc { get; set; }
 
     public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
+
+    public virtual ICollection<Submission> Submissions { get; set; } = new List<Submission>();
 }

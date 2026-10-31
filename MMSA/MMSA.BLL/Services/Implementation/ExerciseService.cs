@@ -9,18 +9,23 @@ namespace MMSA.BLL.Services.Implementation;
 public sealed class ExerciseService : IExerciseService
 {
     private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled);
+    private const int StoredAnswerMaxLength = 1000;
+    private const int TopWrongAnswers = 5;
 
     private readonly IExerciseRepository _exerciseRepository;
     private readonly ICourseRepository _courseRepository;
+    private readonly ISubmissionRepository _submissionRepository;
     private readonly TimeProvider _timeProvider;
 
     public ExerciseService(
         IExerciseRepository exerciseRepository,
         ICourseRepository courseRepository,
+        ISubmissionRepository submissionRepository,
         TimeProvider timeProvider)
     {
         _exerciseRepository = exerciseRepository;
         _courseRepository = courseRepository;
+        _submissionRepository = submissionRepository;
         _timeProvider = timeProvider;
     }
 
@@ -106,7 +111,7 @@ public sealed class ExerciseService : IExerciseService
         await _exerciseRepository.DeleteAsync(exercise, true);
     }
 
-    public async Task<ExerciseCheckResultDTO> CheckAsync(int id, ExerciseCheckRequestDTO request)
+    public async Task<ExerciseCheckResultDTO> CheckAsync(int id, ExerciseCheckRequestDTO request, bool recordSubmission)
     {
         var exercise = await _exerciseRepository.GetWithQuestionsAsync(id)
             ?? throw new KeyNotFoundException("Завдання не знайдено.");
@@ -130,8 +135,162 @@ public sealed class ExerciseService : IExerciseService
             }
         }
 
+        if (recordSubmission && request.ClientId is { } clientId && clientId != Guid.Empty)
+            await SaveSubmissionAsync(exercise, clientId, answers, result);
+
         return result;
     }
+
+    public async Task<List<ExerciseProgressDTO>> GetProgressAsync(int pageId, int? subPageId, Guid clientId)
+    {
+        if (clientId == Guid.Empty)
+            return new List<ExerciseProgressDTO>();
+
+        var exerciseIds = (await _exerciseRepository.GetByTopicAsync(pageId, subPageId)).Select(e => e.Id).ToList();
+        var submissions = await _submissionRepository.GetForClientAsync(clientId, exerciseIds);
+
+        return submissions
+            .GroupBy(s => s.ExerciseId)
+            .Select(group =>
+            {
+                var last = group.MaxBy(s => s.SubmittedAtUtc)!;
+                return new ExerciseProgressDTO
+                {
+                    ExerciseId = group.Key,
+                    Attempts = group.Count(),
+                    BestScore = group.Max(s => s.Score),
+                    LastScore = last.Score,
+                    MaxScore = last.MaxScore,
+                    LastSubmittedAtUtc = last.SubmittedAtUtc
+                };
+            })
+            .ToList();
+    }
+
+    public async Task<ExerciseStatsDTO?> GetStatsAsync(int id)
+    {
+        var exercise = await _exerciseRepository.GetWithQuestionsAsync(id);
+        if (exercise is null)
+            return null;
+
+        var submissions = await _submissionRepository.GetForExerciseWithAnswersAsync(id);
+        var firstAttempts = submissions.GroupBy(s => s.ClientId).Select(g => g.First()).ToList();
+        var bestAttempts = submissions.GroupBy(s => s.ClientId).Select(g => g.MaxBy(Percent)!).ToList();
+        var answersByQuestion = submissions
+            .SelectMany(s => s.Answers)
+            .GroupBy(a => a.QuestionId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        return new ExerciseStatsDTO
+        {
+            ExerciseId = exercise.Id,
+            Title = exercise.Title,
+            Attempts = submissions.Count,
+            Students = firstAttempts.Count,
+            AveragePercent = AveragePercent(submissions),
+            FirstAttemptAveragePercent = AveragePercent(firstAttempts),
+            BestAveragePercent = AveragePercent(bestAttempts),
+            LastSubmittedAtUtc = submissions.Count == 0 ? null : submissions.Max(s => s.SubmittedAtUtc),
+            Questions = exercise.Questions
+                .OrderBy(q => q.Order)
+                .Select(q => BuildQuestionStats(q, answersByQuestion.GetValueOrDefault(q.Id) ?? new List<SubmissionAnswer>()))
+                .ToList()
+        };
+    }
+
+    private async Task SaveSubmissionAsync(
+        Exercise exercise,
+        Guid clientId,
+        IReadOnlyDictionary<int, QuestionAnswerDTO> answers,
+        ExerciseCheckResultDTO result)
+    {
+        var questions = exercise.Questions.ToDictionary(q => q.Id);
+        var submission = new Submission
+        {
+            ExerciseId = exercise.Id,
+            ClientId = clientId,
+            Score = result.Score,
+            MaxScore = result.MaxScore,
+            SubmittedAtUtc = _timeProvider.GetUtcNow().UtcDateTime
+        };
+
+        foreach (var questionResult in result.Questions)
+        {
+            answers.TryGetValue(questionResult.QuestionId, out var answer);
+            var type = questions[questionResult.QuestionId].Type;
+
+            submission.Answers.Add(new SubmissionAnswer
+            {
+                QuestionId = questionResult.QuestionId,
+                Status = questionResult.Status,
+                EarnedPoints = questionResult.EarnedPoints,
+                MaxPoints = questionResult.MaxPoints,
+                SelectedOptionIds = (type is QuestionType.SingleChoice or QuestionType.MultipleChoice) && answer is not null
+                    ? string.Join(",", answer.SelectedOptionIds.Distinct().Take(10))
+                    : null,
+                AnswerText = Truncate(answer?.Text?.Trim(), StoredAnswerMaxLength)
+            });
+        }
+
+        await _submissionRepository.InsertAsync(submission, true);
+    }
+
+    private static QuestionStatsDTO BuildQuestionStats(Question question, List<SubmissionAnswer> answers)
+    {
+        var checkedAnswers = answers.Where(a => a.Status != QuestionResultStatus.NotChecked).ToList();
+        var correct = checkedAnswers.Count(a => a.Status == QuestionResultStatus.Correct);
+
+        var picks = answers
+            .SelectMany(a => ParseIds(a.SelectedOptionIds))
+            .GroupBy(optionId => optionId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return new QuestionStatsDTO
+        {
+            QuestionId = question.Id,
+            Type = question.Type.ToString(),
+            Text = question.Text,
+            Answered = checkedAnswers.Count,
+            Correct = correct,
+            CorrectPercent = checkedAnswers.Count == 0 ? null : Math.Round(100.0 * correct / checkedAnswers.Count, 1),
+            Options = question.Type is QuestionType.SingleChoice or QuestionType.MultipleChoice
+                ? question.Options
+                    .OrderBy(o => o.Order)
+                    .Select(o => new OptionStatsDTO
+                    {
+                        OptionId = o.Id,
+                        Text = o.Text,
+                        IsCorrect = o.IsCorrect,
+                        Picks = picks.GetValueOrDefault(o.Id)
+                    })
+                    .ToList()
+                : new List<OptionStatsDTO>(),
+            WrongAnswers = question.Type == QuestionType.ShortAnswer
+                ? checkedAnswers
+                    .Where(a => a.Status == QuestionResultStatus.Incorrect && !string.IsNullOrWhiteSpace(a.AnswerText))
+                    .GroupBy(a => NormalizeShortAnswer(a.AnswerText))
+                    .Select(g => new WrongAnswerStatsDTO { Text = g.First().AnswerText!, Count = g.Count() })
+                    .OrderByDescending(w => w.Count)
+                    .Take(TopWrongAnswers)
+                    .ToList()
+                : new List<WrongAnswerStatsDTO>()
+        };
+    }
+
+    private static double Percent(Submission submission) =>
+        submission.MaxScore == 0 ? 0 : 100.0 * submission.Score / submission.MaxScore;
+
+    private static double? AveragePercent(IReadOnlyCollection<Submission> submissions) =>
+        submissions.Count == 0 ? null : Math.Round(submissions.Average(Percent), 1);
+
+    private static IEnumerable<int> ParseIds(string? value) =>
+        (value ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => int.TryParse(part, out var id) ? id : 0)
+            .Where(id => id > 0);
+
+    private static string? Truncate(string? value, int maxLength) =>
+        string.IsNullOrEmpty(value) ? null : value.Length <= maxLength ? value : value[..maxLength];
 
     private static QuestionResultDTO CheckQuestion(Question question, QuestionAnswerDTO? answer)
     {

@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using MMSA.Authorization;
 using MMSA.BLL.Dtos.Exercises;
+using Microsoft.AspNetCore.RateLimiting;
 using MMSA.BLL.Services.Interfaces;
+using MMSA.RateLimiting;
 
 namespace MMSA.Controllers;
 
@@ -28,9 +30,32 @@ public class ExercisesController : CourseEditingControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.ExerciseCheck)]
     [HttpPost("{id:int}/check")]
     public Task<IActionResult> Check(int id, ExerciseCheckRequestDTO request) =>
-        Handle(async () => Ok(await _exerciseService.CheckAsync(id, request)));
+        Handle(async () =>
+        {
+            var isCourseEditor = await CanEditAsync(await _courseService.GetAccessForExerciseAsync(id));
+            return Ok(await _exerciseService.CheckAsync(id, request, recordSubmission: !isCourseEditor));
+        });
+
+    [AllowAnonymous]
+    [HttpGet("progress")]
+    public async Task<IActionResult> GetProgress(int pageId, int? subPageId, Guid clientId)
+    {
+        return Ok(await _exerciseService.GetProgressAsync(pageId, subPageId, clientId));
+    }
+
+    [HttpGet("{id:int}/stats")]
+    public Task<IActionResult> GetStats(int id) =>
+        Handle(async () =>
+        {
+            if (await EnsureCanEditAsync(_courseService.GetAccessForExerciseAsync(id)) is { } denied)
+                return denied;
+
+            var stats = await _exerciseService.GetStatsAsync(id);
+            return stats is null ? NotFound() : Ok(stats);
+        });
 
     [HttpGet("{id:int}/edit")]
     public Task<IActionResult> GetForEdit(int id) =>

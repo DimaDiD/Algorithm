@@ -4,6 +4,8 @@ namespace MMSA.BLL.Dtos.Exercises;
 
 public class ExerciseCheckRequestDTO
 {
+    public Guid? ClientId { get; set; }
+
     [MaxLength(50)]
     public List<QuestionAnswerDTO> Answers { get; set; } = new();
 }
