@@ -8,7 +8,7 @@ public class CourseDashboardDTO
     public int Students { get; set; }
     public int Attempts { get; set; }
     public double? FirstAttemptAveragePercent { get; set; }
-    public double? AveragePercent { get; set; }
+    public double? BestAveragePercent { get; set; }
     public int PendingReviews { get; set; }
     public DateTime? LastSubmittedAtUtc { get; set; }
     public List<DashboardExerciseDTO> Exercises { get; set; } = new();
@@ -24,8 +24,11 @@ public class DashboardExerciseDTO
     public string? SubPageName { get; set; }
     public int Attempts { get; set; }
     public int Students { get; set; }
-    public double? AveragePercent { get; set; }
+    public int? MaxScore { get; set; }
+    public double? FirstAttemptAverageScore { get; set; }
     public double? FirstAttemptAveragePercent { get; set; }
+    public double? BestAverageScore { get; set; }
+    public double? BestAveragePercent { get; set; }
     public int PendingReviews { get; set; }
 }
 

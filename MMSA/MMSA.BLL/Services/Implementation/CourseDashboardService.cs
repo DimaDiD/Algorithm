@@ -34,14 +34,16 @@ public sealed class CourseDashboardService : ICourseDashboardService
             CourseId = courseId,
             Students = submissions.Select(s => s.ClientId).Distinct().Count(),
             Attempts = submissions.Count,
-            AveragePercent = AveragePercent(submissions),
             FirstAttemptAveragePercent = AveragePercent(FirstAttempts(submissions)),
+            BestAveragePercent = AveragePercent(BestAttempts(submissions)),
             PendingReviews = pending.Values.Sum(),
             LastSubmittedAtUtc = submissions.Count == 0 ? null : submissions.Max(s => s.SubmittedAtUtc),
             Exercises = exercises
                 .Select(exercise =>
                 {
                     var items = byExercise[exercise.ExerciseId].ToList();
+                    var firstAttempts = FirstAttempts(items).ToList();
+                    var bestAttempts = BestAttempts(items).ToList();
                     return new DashboardExerciseDTO
                     {
                         ExerciseId = exercise.ExerciseId,
@@ -52,8 +54,11 @@ public sealed class CourseDashboardService : ICourseDashboardService
                         SubPageName = exercise.SubPageName,
                         Attempts = items.Count,
                         Students = items.Select(s => s.ClientId).Distinct().Count(),
-                        AveragePercent = AveragePercent(items),
-                        FirstAttemptAveragePercent = AveragePercent(FirstAttempts(items)),
+                        MaxScore = items.Count == 0 ? null : items.MaxBy(s => s.SubmittedAtUtc)!.MaxScore,
+                        FirstAttemptAverageScore = AverageScore(firstAttempts),
+                        FirstAttemptAveragePercent = AveragePercent(firstAttempts),
+                        BestAverageScore = AverageScore(bestAttempts),
+                        BestAveragePercent = AveragePercent(bestAttempts),
                         PendingReviews = pending.GetValueOrDefault(exercise.ExerciseId)
                     };
                 })
@@ -163,6 +168,17 @@ public sealed class CourseDashboardService : ICourseDashboardService
         submissions
             .GroupBy(s => (s.ExerciseId, s.ClientId))
             .Select(group => group.MinBy(s => s.SubmittedAtUtc)!);
+
+    private static IEnumerable<SubmissionSummary> BestAttempts(IEnumerable<SubmissionSummary> submissions) =>
+        submissions
+            .GroupBy(s => (s.ExerciseId, s.ClientId))
+            .Select(group => group.MaxBy(Percent)!);
+
+    private static double Percent(SubmissionSummary submission) =>
+        submission.MaxScore == 0 ? 0 : 100.0 * submission.Score / submission.MaxScore;
+
+    private static double? AverageScore(IReadOnlyCollection<SubmissionSummary> submissions) =>
+        submissions.Count == 0 ? null : Math.Round(submissions.Average(s => s.Score), 1);
 
     private static double? AveragePercent(IEnumerable<SubmissionSummary> submissions)
     {
