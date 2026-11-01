@@ -167,6 +167,14 @@ public sealed class ExerciseService : IExerciseService
         await _exerciseRepository.SaveAsync();
     }
 
+    public Task<int> DeleteClientDataAsync(Guid clientId)
+    {
+        if (clientId == Guid.Empty)
+            throw new ArgumentException("Невідомий ідентифікатор браузера.");
+
+        return _submissionRepository.DeleteForClientAsync(clientId);
+    }
+
     public AiStatusDTO GetAiStatus() => new()
     {
         Enabled = _aiReviewService.IsEnabled,

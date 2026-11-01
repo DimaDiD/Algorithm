@@ -11,6 +11,7 @@ public interface IExerciseService
     Task UpdateAsync(ExerciseEditDTO exercise);
     Task DeleteAsync(int id);
     Task MoveAsync(int id, MoveDirection direction);
+    Task<int> DeleteClientDataAsync(Guid clientId);
     Task<ExerciseCheckResultDTO> CheckAsync(
         int id,
         ExerciseCheckRequestDTO request,

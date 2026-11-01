@@ -25,4 +25,9 @@ public class SubmissionRepository : BaseRepository<Submission>, ISubmissionRepos
             .Where(submission => submission.ClientId == clientId && exerciseIds.Contains(submission.ExerciseId))
             .OrderBy(submission => submission.SubmittedAtUtc)
             .ToListAsync();
+
+    public Task<int> DeleteForClientAsync(Guid clientId) =>
+        _dataContext.Submissions
+            .Where(submission => submission.ClientId == clientId)
+            .ExecuteDeleteAsync();
 }

@@ -70,6 +70,12 @@ public class ExercisesController : CourseEditingControllerBase
             return Ok(await _exerciseService.GetProgressAsync(pageId, subPageId, clientId));
         });
 
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.ExerciseCheck)]
+    [HttpDelete("my-data")]
+    public Task<IActionResult> DeleteMyData(Guid clientId) =>
+        Handle(async () => Ok(new { deleted = await _exerciseService.DeleteClientDataAsync(clientId) }));
+
     [HttpGet("{id:int}/stats")]
     public Task<IActionResult> GetStats(int id) =>
         Handle(async () =>

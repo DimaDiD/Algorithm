@@ -6,4 +6,5 @@ public interface ISubmissionRepository : IBaseRepository<Submission>
 {
     Task<List<Submission>> GetForExerciseWithAnswersAsync(int exerciseId);
     Task<List<Submission>> GetForClientAsync(Guid clientId, IReadOnlyCollection<int> exerciseIds);
+    Task<int> DeleteForClientAsync(Guid clientId);
 }
