@@ -21,6 +21,7 @@ using MMSA.RateLimiting;
 using MMSA.Seed;
 using MMSA.Swagger;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -145,18 +146,33 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<ICourseService, CourseService>();
-builder.Services.AddSingleton<IAuthorizationHandler, CourseOwnerHandler>();
 builder.Services.AddScoped<IPageRepository, PageRepository>();
-builder.Services.AddScoped<IPageService, PageService>();
+builder.Services.AddScoped<ISubPageRepository, SubPageRepository>();
 builder.Services.AddScoped<IPageContentRepository, PageContentRepository>();
 builder.Services.AddScoped<IProgrammingTopicRepository, ProgrammingTopicRepository>();
+builder.Services.AddScoped<IProgrammingLanguageRepository, ProgrammingLanguageRepository>();
 builder.Services.AddScoped<IExerciseRepository, ExerciseRepository>();
-builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IPageService, PageService>();
+builder.Services.AddScoped<ISubPageService, SubPageService>();
+builder.Services.AddScoped<IPageContentService, PageContentService>();
+builder.Services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
+builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ICourseDashboardService, CourseDashboardService>();
+builder.Services.AddSingleton<IHtmlContentSanitizer, HtmlContentSanitizer>();
+builder.Services.AddSingleton<IAuthorizationHandler, CourseOwnerHandler>();
+
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 
 builder.Services.AddOptions<AiReviewOptions>()
     .Bind(builder.Configuration.GetSection(AiReviewOptions.SectionName))
@@ -172,22 +188,22 @@ builder.Services.AddHttpClient<IAiReviewService, ClaudeAiReviewService>((service
     client.BaseAddress = new Uri(options.BaseUrl);
     client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 });
-builder.Services.AddScoped<IProgrammingLanguageRepository, ProgrammingLanguageRepository>();
-builder.Services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
-builder.Services.AddScoped<IPageContentService, PageContentService>();
-builder.Services.AddSingleton<IHtmlContentSanitizer, HtmlContentSanitizer>();
-builder.Services.AddScoped<ISubPageRepository, SubPageRepository>();
-builder.Services.AddScoped<ISubPageService, SubPageService>();
 
-builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<ITokenService, TokenService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserRoleService, UserRoleService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
+    .WithOrigins(corsOrigins)
+    .AllowAnyMethod()
+    .AllowAnyHeader()
+    .AllowCredentials()));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -207,16 +223,6 @@ builder.Services.AddSwaggerGen(options =>
 
     options.OperationFilter<AuthorizeOperationFilter>();
 });
-builder.Services.AddControllers().AddJsonOptions(x =>
-{
-    x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-});
-builder.Services.AddControllers().AddNewtonsoftJson(options =>
-{
-    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
-    options.UseMemberCasing();
-});
-
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 var app = builder.Build();
@@ -226,18 +232,17 @@ using (var scope = app.Services.CreateScope())
     await IdentitySeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
 }
 
-app.UseRouting();
-app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseHttpsRedirection();
 
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors();
 app.UseRateLimiter();
-app.UseAuthentication();    
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
