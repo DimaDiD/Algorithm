@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using MMSA.Authorization;
+using MMSA.BackgroundJobs;
 using MMSA.BLL.Options;
 using MMSA.BLL.Services.Implementation;
 using MMSA.BLL.Services.Implementation.Ai;
@@ -173,6 +174,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 builder.Services.AddOptions<AiReviewOptions>()
     .Bind(builder.Configuration.GetSection(AiReviewOptions.SectionName))
