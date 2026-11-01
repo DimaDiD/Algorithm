@@ -44,6 +44,14 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            entity.HasIndex(u => u.NormalizedEmail)
+                .HasDatabaseName("EmailIndex")
+                .IsUnique()
+                .HasFilter("[NormalizedEmail] IS NOT NULL");
+        });
+
         modelBuilder.Entity<Course>(entity =>
         {
             entity.ToTable("Course");

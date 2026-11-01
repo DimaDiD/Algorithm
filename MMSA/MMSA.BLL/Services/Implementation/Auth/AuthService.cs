@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MMSA.BLL.Dtos.Auth;
 using MMSA.BLL.Options;
@@ -11,13 +12,16 @@ namespace MMSA.BLL.Services.Implementation.Auth;
 
 public sealed class AuthService : IAuthService
 {
-    private const string InvalidCredentials = "Invalid email or password.";
-    private const string InvalidRefreshToken = "Invalid or expired refresh token.";
+    private const string InvalidCredentials = "Неправильний email або пароль.";
+    private const string InvalidRefreshToken = "Сесія завершилася. Увійдіть ще раз.";
+    private const string LockedOut = "Забагато невдалих спроб входу. Спробуйте через кілька хвилин.";
+    private const string DuplicateEmail = "Користувач з таким email уже зареєстрований.";
 
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly AuthTokenOptions _authTokenOptions;
     private readonly TimeProvider _timeProvider;
 
@@ -26,6 +30,7 @@ public sealed class AuthService : IAuthService
         SignInManager<ApplicationUser> signInManager,
         ITokenService tokenService,
         IRefreshTokenRepository refreshTokenRepository,
+        IUnitOfWork unitOfWork,
         IOptions<AuthTokenOptions> authTokenOptions,
         TimeProvider timeProvider)
     {
@@ -33,6 +38,7 @@ public sealed class AuthService : IAuthService
         _signInManager = signInManager;
         _tokenService = tokenService;
         _refreshTokenRepository = refreshTokenRepository;
+        _unitOfWork = unitOfWork;
         _authTokenOptions = authTokenOptions.Value;
         _timeProvider = timeProvider;
     }
@@ -41,13 +47,28 @@ public sealed class AuthService : IAuthService
     {
         var user = new ApplicationUser { UserName = request.Email, Email = request.Email };
 
-        var createResult = await _userManager.CreateAsync(user, request.Password);
-        if (!createResult.Succeeded)
-            return AuthResult.Failure(createResult.Errors.Select(e => e.Description));
+        await using (var transaction = await _unitOfWork.BeginTransactionAsync())
+        {
+            try
+            {
+                var createResult = await _userManager.CreateAsync(user, request.Password);
+                if (!createResult.Succeeded)
+                    return AuthResult.Failure(createResult.Errors.Select(e => e.Description));
 
-        var roleResult = await _userManager.AddToRoleAsync(user, Roles.Reader);
-        if (!roleResult.Succeeded)
-            return AuthResult.Failure(roleResult.Errors.Select(e => e.Description));
+                var roleResult = await _userManager.AddToRoleAsync(user, Roles.Reader);
+                if (!roleResult.Succeeded)
+                    return AuthResult.Failure(roleResult.Errors.Select(e => e.Description));
+
+                await transaction.CommitAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (!await EmailExistsAsync(request.Email))
+                    throw;
+
+                return AuthResult.Failure(DuplicateEmail);
+            }
+        }
 
         var response = await IssueTokensAsync(user, new[] { Roles.Reader }, Guid.NewGuid());
         return AuthResult.Success(response);
@@ -63,7 +84,7 @@ public sealed class AuthService : IAuthService
             user, request.Password, lockoutOnFailure: true);
 
         if (check.IsLockedOut)
-            return AuthResult.Failure("Too many failed attempts. Try again later.");
+            return AuthResult.Failure(LockedOut);
 
         if (!check.Succeeded)
             return AuthResult.Failure(InvalidCredentials);
@@ -186,5 +207,11 @@ public sealed class AuthService : IAuthService
         }
 
         await _refreshTokenRepository.SaveAsync();
+    }
+
+    private Task<bool> EmailExistsAsync(string email)
+    {
+        var normalizedEmail = _userManager.NormalizeEmail(email);
+        return _userManager.Users.AnyAsync(u => u.NormalizedEmail == normalizedEmail);
     }
 }

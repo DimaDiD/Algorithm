@@ -46,6 +46,7 @@ builder.Services
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AlgorithmDataContext>()
+    .AddErrorDescriber<UkrainianIdentityErrorDescriber>()
     .AddSignInManager();
 
 builder.Services.AddOptions<AuthTokenOptions>().Bind(builder.Configuration.GetSection(AuthTokenOptions.SectionName))
@@ -183,6 +184,7 @@ builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 builder.Services.AddControllers();

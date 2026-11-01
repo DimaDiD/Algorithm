@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Data;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using MMSA.BLL.Dtos.Auth;
 using MMSA.BLL.Services.Interfaces.Auth;
 using MMSA.DAL.Constants;
@@ -13,11 +15,13 @@ public sealed class UserRoleService : IUserRoleService
 
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public UserRoleService(UserManager<ApplicationUser> userManager, IUserRepository userRepository)
+    public UserRoleService(UserManager<ApplicationUser> userManager, IUserRepository userRepository, IUnitOfWork unitOfWork)
     {
         _userManager = userManager;
         _userRepository = userRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<UserPageDTO> SearchAsync(string? search, int page, string currentUserId)
@@ -54,18 +58,36 @@ public sealed class UserRoleService : IUserRoleService
         if (user.Id == currentUserId)
             return new[] { "Не можна змінити власну роль — попросіть іншого адміністратора." };
 
-        var currentRoles = await _userManager.GetRolesAsync(user);
+        try
+        {
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable);
 
-        var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
-        if (!removeResult.Succeeded)
-            return removeResult.Errors.Select(e => e.Description).ToArray();
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            if (currentRoles.Contains(request.Role) && currentRoles.Count == 1)
+                return Array.Empty<string>();
 
-        var addResult = await _userManager.AddToRoleAsync(user, request.Role);
-        if (!addResult.Succeeded)
-            return addResult.Errors.Select(e => e.Description).ToArray();
+            if (currentRoles.Contains(Roles.Admin) && request.Role != Roles.Admin
+                && (await _userManager.GetUsersInRoleAsync(Roles.Admin)).Count <= 1)
+                return new[] { "Це останній адміністратор — спочатку призначте іншого." };
 
-        await _userManager.UpdateSecurityStampAsync(user);
+            var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeResult.Succeeded)
+                return removeResult.Errors.Select(e => e.Description).ToArray();
 
-        return Array.Empty<string>();
+            var addResult = await _userManager.AddToRoleAsync(user, request.Role);
+            if (!addResult.Succeeded)
+                return addResult.Errors.Select(e => e.Description).ToArray();
+
+            var stampResult = await _userManager.UpdateSecurityStampAsync(user);
+            if (!stampResult.Succeeded)
+                return stampResult.Errors.Select(e => e.Description).ToArray();
+
+            await transaction.CommitAsync();
+            return Array.Empty<string>();
+        }
+        catch (DbUpdateException)
+        {
+            return new[] { "Роль одночасно змінює інший адміністратор. Оновіть сторінку й спробуйте ще раз." };
+        }
     }
 }
