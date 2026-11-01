@@ -23,6 +23,15 @@ public abstract class CourseEditingControllerBase : ControllerBase
         return (await authorizationService.AuthorizeAsync(User, access, CourseOwnerRequirement.Instance)).Succeeded;
     }
 
+    protected async Task<IActionResult?> EnsureCanReadAsync(Task<CourseAccess?> accessTask)
+    {
+        var access = await accessTask;
+        if (access is not null && (access.IsPublished || await CanEditAsync(access)))
+            return null;
+
+        return NotFound(new { errors = new[] { "Об'єкт не знайдено." } });
+    }
+
     protected async Task<IActionResult?> EnsureCanEditAsync(Task<CourseAccess?> accessTask)
     {
         var access = await accessTask;

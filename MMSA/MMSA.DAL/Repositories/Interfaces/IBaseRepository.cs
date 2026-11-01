@@ -14,7 +14,6 @@ namespace MMSA.DAL.Repositories.Interfaces
         void Attach(T entity);
 
         IQueryable<T> Include(params Expression<Func<T, object>>[] includes);
-        Task<IEnumerable<T>> GetItemListAsync(string select, string where, string group, string sort, string limit);
 
         Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> predicate = null, Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null);
 

@@ -57,19 +57,19 @@ public class CourseRepository : BaseRepository<Course>, ICourseRepository
     public Task<CourseAccess?> GetAccessForCourseAsync(int courseId) =>
         _dataContext.Courses
             .Where(course => course.Id == courseId)
-            .Select(course => new CourseAccess(course.Id, course.OwnerId))
+            .Select(course => new CourseAccess(course.Id, course.OwnerId, course.IsPublished))
             .FirstOrDefaultAsync();
 
     public Task<CourseAccess?> GetAccessForPageAsync(int pageId) =>
         _dataContext.Pages
             .Where(page => page.Id == pageId)
-            .Select(page => new CourseAccess(page.CourseId, page.Course.OwnerId))
+            .Select(page => new CourseAccess(page.CourseId, page.Course.OwnerId, page.Course.IsPublished))
             .FirstOrDefaultAsync();
 
     public Task<CourseAccess?> GetAccessForSubPageAsync(int subPageId) =>
         _dataContext.SubPages
             .Where(subPage => subPage.Id == subPageId)
-            .Select(subPage => new CourseAccess(subPage.Page.CourseId, subPage.Page.Course.OwnerId))
+            .Select(subPage => new CourseAccess(subPage.Page.CourseId, subPage.Page.Course.OwnerId, subPage.Page.Course.IsPublished))
             .FirstOrDefaultAsync();
 
     public async Task<CourseAccess?> GetAccessForTopicAsync(int pageId, int? subPageId)
@@ -79,7 +79,7 @@ public class CourseRepository : BaseRepository<Course>, ICourseRepository
 
         return await _dataContext.SubPages
             .Where(subPage => subPage.Id == subPageId && subPage.PageId == pageId)
-            .Select(subPage => new CourseAccess(subPage.Page.CourseId, subPage.Page.Course.OwnerId))
+            .Select(subPage => new CourseAccess(subPage.Page.CourseId, subPage.Page.Course.OwnerId, subPage.Page.Course.IsPublished))
             .FirstOrDefaultAsync();
     }
 
@@ -87,21 +87,21 @@ public class CourseRepository : BaseRepository<Course>, ICourseRepository
         (from content in _dataContext.PageContents
          join page in _dataContext.Pages on content.PageId equals (int?)page.Id
          where content.Id == pageContentId
-         select new CourseAccess(page.CourseId, page.Course.OwnerId))
+         select new CourseAccess(page.CourseId, page.Course.OwnerId, page.Course.IsPublished))
         .FirstOrDefaultAsync();
 
     public Task<CourseAccess?> GetAccessForExerciseAsync(int exerciseId) =>
         (from exercise in _dataContext.Exercises
          join page in _dataContext.Pages on exercise.PageId equals page.Id
          where exercise.Id == exerciseId
-         select new CourseAccess(page.CourseId, page.Course.OwnerId))
+         select new CourseAccess(page.CourseId, page.Course.OwnerId, page.Course.IsPublished))
         .FirstOrDefaultAsync();
 
     public Task<CourseAccess?> GetAccessForSubmissionAnswerAsync(int answerId) =>
         (from answer in _dataContext.SubmissionAnswers
          join page in _dataContext.Pages on answer.Submission.Exercise.PageId equals page.Id
          where answer.Id == answerId
-         select new CourseAccess(page.CourseId, page.Course.OwnerId))
+         select new CourseAccess(page.CourseId, page.Course.OwnerId, page.Course.IsPublished))
         .FirstOrDefaultAsync();
 
     public async Task DeleteCourseTreeAsync(int courseId)

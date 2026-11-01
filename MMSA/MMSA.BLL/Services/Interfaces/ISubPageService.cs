@@ -5,5 +5,6 @@
         Task CreateSubPageAsync(int pageId, string subPageName);
         Task RenameSubPageAsync(int subPageId, string newName);
         Task DeleteSubPageAsync(int subPageId);
+        Task ReorderSubPagesAsync(int pageId, IReadOnlyList<int> orderedSubPageIds);
     }
 }

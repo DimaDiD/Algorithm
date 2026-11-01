@@ -11,6 +11,8 @@ public partial class Page
 
     public int CourseId { get; set; }
 
+    public int Order { get; set; }
+
     public virtual Course Course { get; set; } = null!;
 
     public virtual ICollection<SubPage> SubPages { get; set; } = new List<SubPage>();

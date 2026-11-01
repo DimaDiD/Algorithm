@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using MMSA.BLL.Dtos;
 using MMSA.BLL.Dtos.Exercises;
 using MMSA.BLL.Options;
 using MMSA.BLL.Services.Interfaces;
@@ -135,6 +136,35 @@ public sealed class ExerciseService : IExerciseService
             ?? throw new KeyNotFoundException("Завдання не знайдено.");
 
         await _exerciseRepository.DeleteAsync(exercise, true);
+    }
+
+    public async Task MoveAsync(int id, MoveDirection direction)
+    {
+        var target = await _exerciseRepository.GetFirstOrDefaultAsync(e => e.Id == id)
+            ?? throw new KeyNotFoundException("Завдання не знайдено.");
+
+        var siblings = (await _exerciseRepository.GetAllAsync(e => e.PageId == target.PageId && e.SubPageId == target.SubPageId))
+            .OrderBy(e => e.Order)
+            .ThenBy(e => e.Id)
+            .ToList();
+
+        var index = siblings.FindIndex(e => e.Id == id);
+        var neighbourIndex = direction == MoveDirection.Up ? index - 1 : index + 1;
+        if (neighbourIndex < 0 || neighbourIndex >= siblings.Count)
+            return;
+
+        (siblings[index], siblings[neighbourIndex]) = (siblings[neighbourIndex], siblings[index]);
+
+        for (var position = 0; position < siblings.Count; position++)
+        {
+            if (siblings[position].Order == position)
+                continue;
+
+            siblings[position].Order = position;
+            await _exerciseRepository.UpdateAsync(siblings[position], false);
+        }
+
+        await _exerciseRepository.SaveAsync();
     }
 
     public AiStatusDTO GetAiStatus() => new()

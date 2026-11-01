@@ -22,7 +22,25 @@ namespace MMSA.BLL.Services.Implementation
             if (await _subPageRepository.GetFirstOrDefaultAsync(s => s.PageId == pageId && s.Name == name) is not null)
                 throw new ArgumentException($"Тема «{name}» уже є в цьому розділі.");
 
-            await _subPageRepository.InsertAsync(new SubPage { PageId = pageId, Name = name }, true);
+            var siblings = await _subPageRepository.GetAllAsync(s => s.PageId == pageId);
+            var order = siblings.Any() ? siblings.Max(s => s.Order) + 1 : 0;
+
+            await _subPageRepository.InsertAsync(new SubPage { PageId = pageId, Name = name, Order = order }, true);
+        }
+
+        public async Task ReorderSubPagesAsync(int pageId, IReadOnlyList<int> orderedSubPageIds)
+        {
+            var subPages = (await _subPageRepository.GetAllAsync(s => s.PageId == pageId)).ToList();
+            PageService.EnsureSameSet(subPages.Select(s => s.Id), orderedSubPageIds, "тем");
+
+            var positions = orderedSubPageIds.Select((id, index) => (id, index)).ToDictionary(x => x.id, x => x.index);
+            foreach (var subPage in subPages.Where(s => s.Order != positions[s.Id]))
+            {
+                subPage.Order = positions[subPage.Id];
+                await _subPageRepository.UpdateAsync(subPage, false);
+            }
+
+            await _subPageRepository.SaveAsync();
         }
 
         public async Task RenameSubPageAsync(int subPageId, string newName)

@@ -8,5 +8,6 @@ namespace MMSA.BLL.Services.Interfaces
         Task CreatePageAsync(int courseId, string pageName);
         Task RenamePageAsync(int pageId, string newName);
         Task DeletePageAsync(int pageId);
+        Task ReorderPagesAsync(int courseId, IReadOnlyList<int> orderedPageIds);
     }
 }

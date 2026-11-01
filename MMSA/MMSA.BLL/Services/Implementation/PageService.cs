@@ -28,11 +28,11 @@ namespace MMSA.BLL.Services.Implementation
                 page => page.CourseId == courseId,
                 include: query => query.Include(page => page.SubPages));
 
-            var result = _mapper.Map<List<PageDTO>>(pages.OrderBy(page => page.Id));
-            foreach (var page in result)
-                page.SubPages = page.SubPages.OrderBy(subPage => subPage.Id).ToList();
+            var ordered = pages.OrderBy(page => page.Order).ThenBy(page => page.Id).ToList();
+            foreach (var page in ordered)
+                page.SubPages = page.SubPages.OrderBy(subPage => subPage.Order).ThenBy(subPage => subPage.Id).ToList();
 
-            return result;
+            return _mapper.Map<List<PageDTO>>(ordered);
         }
 
         public async Task CreatePageAsync(int courseId, string pageName)
@@ -42,7 +42,25 @@ namespace MMSA.BLL.Services.Implementation
             if (await _pageRepository.GetFirstOrDefaultAsync(page => page.CourseId == courseId && page.PageName == name) is not null)
                 throw new ArgumentException($"Розділ «{name}» уже є в цьому курсі.");
 
-            await _pageRepository.InsertAsync(new Page { PageName = name, CourseId = courseId }, true);
+            var siblings = await _pageRepository.GetAllAsync(page => page.CourseId == courseId);
+            var order = siblings.Any() ? siblings.Max(page => page.Order) + 1 : 0;
+
+            await _pageRepository.InsertAsync(new Page { PageName = name, CourseId = courseId, Order = order }, true);
+        }
+
+        public async Task ReorderPagesAsync(int courseId, IReadOnlyList<int> orderedPageIds)
+        {
+            var pages = (await _pageRepository.GetAllAsync(page => page.CourseId == courseId)).ToList();
+            EnsureSameSet(pages.Select(page => page.Id), orderedPageIds, "розділів");
+
+            var positions = orderedPageIds.Select((id, index) => (id, index)).ToDictionary(x => x.id, x => x.index);
+            foreach (var page in pages.Where(page => page.Order != positions[page.Id]))
+            {
+                page.Order = positions[page.Id];
+                await _pageRepository.UpdateAsync(page, false);
+            }
+
+            await _pageRepository.SaveAsync();
         }
 
         public async Task RenamePageAsync(int pageId, string newName)
@@ -60,6 +78,13 @@ namespace MMSA.BLL.Services.Implementation
         }
 
         public Task DeletePageAsync(int pageId) => _courseRepository.DeletePageTreeAsync(pageId);
+
+        internal static void EnsureSameSet(IEnumerable<int> existingIds, IReadOnlyList<int> orderedIds, string what)
+        {
+            var existing = existingIds.ToHashSet();
+            if (orderedIds.Count != existing.Count || orderedIds.Distinct().Count() != orderedIds.Count || !orderedIds.All(existing.Contains))
+                throw new ArgumentException($"Список {what} застарів — оновіть сторінку й спробуйте ще раз.");
+        }
 
         internal static string ValidateName(string? value)
         {

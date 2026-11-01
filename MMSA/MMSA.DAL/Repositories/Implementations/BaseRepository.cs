@@ -82,14 +82,6 @@ namespace MMSA.DAL.Repositories.Implementations
             return query == null ? _dataContext.Set<T>() : query;
         }
 
-        public async Task<IEnumerable<T>> GetItemListAsync(string select, string where, string group, string sort, string limit)
-        {
-            string query = $"{select} {where} {group} {sort} {limit}";
-            return await _dataContext.Set<T>()
-               .FromSqlRaw($"{select} {where} {group} {sort} {limit}")
-               .ToListAsync();
-        }
-
         public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>> predicate = null, Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null)
         {
             return await GetQuery(predicate, include).ToListAsync();

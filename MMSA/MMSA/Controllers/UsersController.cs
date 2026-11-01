@@ -18,6 +18,13 @@ public class UsersController : ControllerBase
 
     public UsersController(IUserRoleService userRoleService) {  _userRoleService = userRoleService; }
 
+    [HttpGet]
+    public async Task<IActionResult> Search(string? search, int page = 1)
+    {
+        var currentUserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub)!;
+        return Ok(await _userRoleService.SearchAsync(search, page, currentUserId));
+    }
+
     [HttpPut(ClaimType.Role)]
     public async Task<IActionResult> ChangeRole(ChangeRoleRequestDTO request)
     {

@@ -21,10 +21,14 @@ namespace MMSA.Controllers
 
         [AllowAnonymous]
         [HttpGet("GetMenuItems")]
-        public async Task<IActionResult> GetMenuItems(int courseId)
-        {
-            return Ok(await _pageService.GetMenuItemsAsync(courseId));
-        }
+        public Task<IActionResult> GetMenuItems(int courseId) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanReadAsync(_courseService.GetAccessForCourseAsync(courseId)) is { } denied)
+                    return denied;
+
+                return Ok(await _pageService.GetMenuItemsAsync(courseId));
+            });
 
         [HttpPost("CreatePage")]
         public Task<IActionResult> CreatePage(int courseId, string pageName) =>
@@ -56,6 +60,17 @@ namespace MMSA.Controllers
                     return denied;
 
                 await _pageService.DeletePageAsync(pageId);
+                return Ok();
+            });
+
+        [HttpPut("ReorderPages")]
+        public Task<IActionResult> ReorderPages(int courseId, [FromBody] List<int> pageIds) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanEditAsync(_courseService.GetAccessForCourseAsync(courseId)) is { } denied)
+                    return denied;
+
+                await _pageService.ReorderPagesAsync(courseId, pageIds);
                 return Ok();
             });
     }

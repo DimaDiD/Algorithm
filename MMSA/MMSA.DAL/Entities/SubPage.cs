@@ -11,5 +11,7 @@ public partial class SubPage
 
     public string Name { get; set; } = null!;
 
+    public int Order { get; set; }
+
     public virtual Page Page { get; set; } = null!;
 }

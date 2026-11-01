@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MMSA.Authorization;
+using MMSA.BLL.Dtos;
 using MMSA.BLL.Dtos.Exercises;
 using Microsoft.AspNetCore.RateLimiting;
 using MMSA.BLL.Services.Interfaces;
@@ -24,10 +25,14 @@ public class ExercisesController : CourseEditingControllerBase
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> GetForTopic(int pageId, int? subPageId)
-    {
-        return Ok(await _exerciseService.GetForTopicAsync(pageId, subPageId));
-    }
+    public Task<IActionResult> GetForTopic(int pageId, int? subPageId) =>
+        Handle(async () =>
+        {
+            if (await EnsureCanReadAsync(_courseService.GetAccessForTopicAsync(pageId, subPageId)) is { } denied)
+                return denied;
+
+            return Ok(await _exerciseService.GetForTopicAsync(pageId, subPageId));
+        });
 
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.ExerciseCheck)]
@@ -35,7 +40,11 @@ public class ExercisesController : CourseEditingControllerBase
     public Task<IActionResult> Check(int id, ExerciseCheckRequestDTO request) =>
         Handle(async () =>
         {
-            var isCourseEditor = await CanEditAsync(await _courseService.GetAccessForExerciseAsync(id));
+            var access = await _courseService.GetAccessForExerciseAsync(id);
+            var isCourseEditor = await CanEditAsync(access);
+            if (access is null || (!access.IsPublished && !isCourseEditor))
+                return NotFound(new { errors = new[] { "Завдання не знайдено." } });
+
             var context = new ExerciseCheckContext(
                 RecordSubmission: !isCourseEditor,
                 ClientKey: RateLimitPolicies.GetClientKey(HttpContext));
@@ -52,10 +61,14 @@ public class ExercisesController : CourseEditingControllerBase
 
     [AllowAnonymous]
     [HttpGet("progress")]
-    public async Task<IActionResult> GetProgress(int pageId, int? subPageId, Guid clientId)
-    {
-        return Ok(await _exerciseService.GetProgressAsync(pageId, subPageId, clientId));
-    }
+    public Task<IActionResult> GetProgress(int pageId, int? subPageId, Guid clientId) =>
+        Handle(async () =>
+        {
+            if (await EnsureCanReadAsync(_courseService.GetAccessForTopicAsync(pageId, subPageId)) is { } denied)
+                return denied;
+
+            return Ok(await _exerciseService.GetProgressAsync(pageId, subPageId, clientId));
+        });
 
     [HttpGet("{id:int}/stats")]
     public Task<IActionResult> GetStats(int id) =>
@@ -98,6 +111,17 @@ public class ExercisesController : CourseEditingControllerBase
 
             exercise.Id = id;
             await _exerciseService.UpdateAsync(exercise);
+            return NoContent();
+        });
+
+    [HttpPut("{id:int}/move")]
+    public Task<IActionResult> Move(int id, MoveDirection direction) =>
+        Handle(async () =>
+        {
+            if (await EnsureCanEditAsync(_courseService.GetAccessForExerciseAsync(id)) is { } denied)
+                return denied;
+
+            await _exerciseService.MoveAsync(id, direction);
             return NoContent();
         });
 

@@ -22,10 +22,14 @@ namespace MMSA.Controllers
 
         [AllowAnonymous]
         [HttpGet("GetPageContentByMenuStatus")]
-        public async Task<IActionResult> GetPageContentByMenuStatus(int pageId, int? subPageId, string codeStatus)
-        {
-            return Ok(await _pageContentService.GetPageContentBySettingStatusAsync(pageId, subPageId, codeStatus));
-        }
+        public Task<IActionResult> GetPageContentByMenuStatus(int pageId, int? subPageId, string codeStatus) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanReadAsync(_courseService.GetAccessForTopicAsync(pageId, subPageId)) is { } denied)
+                    return denied;
+
+                return Ok(await _pageContentService.GetPageContentBySettingStatusAsync(pageId, subPageId, codeStatus));
+            });
 
         [HttpPost("CreatePageContent")]
         public Task<IActionResult> CreatePageContent(PageContentDTO page) =>
@@ -46,6 +50,17 @@ namespace MMSA.Controllers
                     return denied;
 
                 await _pageContentService.UpdatePageContentAsync(page);
+                return Ok();
+            });
+
+        [HttpPut("MovePageContent")]
+        public Task<IActionResult> MovePageContent(int pageContentId, MoveDirection direction, string codeStatus) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanEditAsync(_courseService.GetAccessForContentAsync(pageContentId)) is { } denied)
+                    return denied;
+
+                await _pageContentService.MovePageContentAsync(pageContentId, direction, codeStatus);
                 return Ok();
             });
 

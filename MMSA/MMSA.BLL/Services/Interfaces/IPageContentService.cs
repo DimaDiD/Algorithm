@@ -9,5 +9,6 @@ namespace MMSA.BLL.Services.Interfaces
         Task DeletePageContentAsync(int pageContentId);
         Task UpdatePageContentAsync(PageContentDTO pageContent);
         Task<List<string>> GetProgrammingTopicsAsync();
+        Task MovePageContentAsync(int pageContentId, MoveDirection direction, string codeStatus);
     }
 }

@@ -1,4 +1,5 @@
-﻿using MMSA.BLL.Dtos.Exercises;
+﻿using MMSA.BLL.Dtos;
+using MMSA.BLL.Dtos.Exercises;
 
 namespace MMSA.BLL.Services.Interfaces;
 
@@ -9,6 +10,7 @@ public interface IExerciseService
     Task<int> CreateAsync(ExerciseEditDTO exercise);
     Task UpdateAsync(ExerciseEditDTO exercise);
     Task DeleteAsync(int id);
+    Task MoveAsync(int id, MoveDirection direction);
     Task<ExerciseCheckResultDTO> CheckAsync(
         int id,
         ExerciseCheckRequestDTO request,

@@ -10,6 +10,7 @@ namespace MMSA.BLL.Services.Implementation
     public class PageContentService: IPageContentService
     {
         private const string CodeType = "Code";
+        private const string AllLanguages = "All";
         private const int MaxTopicLength = 100;
         private const int MaxTopicsPerBlock = 15;
 
@@ -32,94 +33,121 @@ namespace MMSA.BLL.Services.Implementation
 
         public async Task<List<PageContentDTO>> GetPageContentBySettingStatusAsync(int pageId, int? subPageId, string codeStatus)
         {
-            try
-            {
-                var pageContent = subPageId == null
-                    ? await _pageContentRepository.GetAllAsync(
-                        x => x.PageId == pageId && (x.CodeType == codeStatus || x.CodeType == "All"),
-                        include: query => query.Include(x => x.Topics))
-                    : await _pageContentRepository.GetAllAsync(
-                        x => x.SubPageId == subPageId && (x.CodeType == codeStatus || x.CodeType == "All"),
-                        include: query => query.Include(x => x.Topics));
+            var pageContent = subPageId == null
+                ? await _pageContentRepository.GetAllAsync(
+                    x => x.PageId == pageId && (x.CodeType == codeStatus || x.CodeType == "All"),
+                    include: query => query.Include(x => x.Topics))
+                : await _pageContentRepository.GetAllAsync(
+                    x => x.SubPageId == subPageId && (x.CodeType == codeStatus || x.CodeType == "All"),
+                    include: query => query.Include(x => x.Topics));
 
-                return _mapper.Map<List<PageContentDTO>>(pageContent.OrderBy(x => x.ContentLocation));
-            }
-            catch (Exception exception)
-            {
-                throw new Exception(exception.Message);
-            }
+            return _mapper.Map<List<PageContentDTO>>(pageContent.OrderBy(x => x.ContentLocation));
         }
 
         public async Task CreatePageContentAsync(PageContentDTO pageContentDto)
         {
-            try
-            {
-                var topicNames = NormalizeTopics(pageContentDto);
-                var pageContent = _mapper.Map<PageContent>(pageContentDto);
-                pageContent.Text = SanitizeText(pageContentDto);
+            var topicNames = NormalizeTopics(pageContentDto);
+            var pageContent = _mapper.Map<PageContent>(pageContentDto);
+            pageContent.Text = SanitizeText(pageContentDto);
 
-                var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && 
-                    pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
+            var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && 
+                pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
 
-                foreach (var item in pageContents) {
-                    item.ContentLocation += 1;
-                    await _pageContentRepository.UpdateAsync(item, true); 
-                }
-
-                foreach (var topic in await _programmingTopicRepository.GetOrAddByNamesAsync(topicNames))
-                    pageContent.Topics.Add(topic);
-
-                await _pageContentRepository.InsertAsync(pageContent, true);
+            foreach (var item in pageContents) {
+                item.ContentLocation += 1;
+                await _pageContentRepository.UpdateAsync(item, true); 
             }
-            catch (Exception exception)
-            {
-                throw new Exception(exception.Message);
-            }
+
+            foreach (var topic in await _programmingTopicRepository.GetOrAddByNamesAsync(topicNames))
+                pageContent.Topics.Add(topic);
+
+            await _pageContentRepository.InsertAsync(pageContent, true);
         }
 
         public async Task UpdatePageContentAsync(PageContentDTO pageContentDto)
         {
-            try
-            {
-                var topicNames = NormalizeTopics(pageContentDto);
-                var pageContent = await _pageContentRepository.GetWithTopicsAsync(pageContentDto.Id)
-                    ?? throw new KeyNotFoundException("Блок не знайдено.");
+            var topicNames = NormalizeTopics(pageContentDto);
+            var pageContent = await _pageContentRepository.GetWithTopicsAsync(pageContentDto.Id)
+                ?? throw new KeyNotFoundException("Блок не знайдено.");
 
-                pageContent.Text = SanitizeText(pageContentDto);
-                pageContent.TextType = pageContentDto.TextType;
-                pageContent.CodeType = pageContentDto.CodeType;
+            pageContent.Text = SanitizeText(pageContentDto);
+            pageContent.TextType = pageContentDto.TextType;
+            pageContent.CodeType = pageContentDto.CodeType;
 
-                var topics = await _programmingTopicRepository.GetOrAddByNamesAsync(topicNames);
-                pageContent.Topics.Clear();
-                foreach (var topic in topics)
-                    pageContent.Topics.Add(topic);
+            var topics = await _programmingTopicRepository.GetOrAddByNamesAsync(topicNames);
+            pageContent.Topics.Clear();
+            foreach (var topic in topics)
+                pageContent.Topics.Add(topic);
 
-                await _pageContentRepository.SaveAsync();
-            }
-            catch (Exception exception)
-            {
-                throw new Exception(exception.Message);
-            }
+            await _pageContentRepository.SaveAsync();
         }
 
         public async Task DeletePageContentAsync(int pageContentId)
         {
-            try
-            {
-                var pageContent = await _pageContentRepository.GetFirstOrDefaultAsync(x => x.Id == pageContentId);
-                await _pageContentRepository.DeleteAsync(pageContent, true);
+            var pageContent = await _pageContentRepository.GetFirstOrDefaultAsync(x => x.Id == pageContentId)
+                ?? throw new KeyNotFoundException("Блок не знайдено.");
+            await _pageContentRepository.DeleteAsync(pageContent, true);
 
-                var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && pageContent.PageId == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
-                foreach (var item in pageContents)
-                {
-                    item.ContentLocation -= 1;
-                    await _pageContentRepository.UpdateAsync(item, true);
-                }                               
-            }
-            catch (Exception exception)
+            var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && pageContent.PageId == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
+            foreach (var item in pageContents)
             {
-                throw new Exception(exception.Message);
+                item.ContentLocation -= 1;
+                await _pageContentRepository.UpdateAsync(item, true);
+            }                               
+        }
+
+        public async Task MovePageContentAsync(int pageContentId, MoveDirection direction, string codeStatus)
+        {
+            var target = await _pageContentRepository.GetFirstOrDefaultAsync(x => x.Id == pageContentId)
+                ?? throw new KeyNotFoundException("Блок не знайдено.");
+
+            var sequence = (await _pageContentRepository.GetAllAsync(x => x.PageId == target.PageId && x.SubPageId == target.SubPageId))
+                .OrderBy(x => x.ContentLocation)
+                .ThenBy(x => x.Id)
+                .ToList();
+            var block = sequence.Single(x => x.Id == pageContentId);
+
+            var visible = sequence
+                .Where(x => x.Id == block.Id || x.CodeType == codeStatus || x.CodeType == AllLanguages)
+                .ToList();
+            var index = visible.IndexOf(block);
+            var neighbourIndex = direction == MoveDirection.Up ? index - 1 : index + 1;
+            if (neighbourIndex < 0 || neighbourIndex >= visible.Count)
+                return;
+
+            sequence.Remove(block);
+            var neighbourPosition = sequence.IndexOf(visible[neighbourIndex]);
+            var (start, end) = block.TextType == CodeType
+                ? (neighbourPosition, neighbourPosition)
+                : CodeRunAround(sequence, neighbourPosition);
+            sequence.Insert(direction == MoveDirection.Up ? start : end + 1, block);
+
+            for (var position = 0; position < sequence.Count; position++)
+            {
+                if (sequence[position].ContentLocation == position)
+                    continue;
+
+                sequence[position].ContentLocation = position;
+                await _pageContentRepository.UpdateAsync(sequence[position], false);
             }
+
+            await _pageContentRepository.SaveAsync();
+        }
+
+        private static (int Start, int End) CodeRunAround(List<PageContent> sequence, int position)
+        {
+            if (sequence[position].TextType != CodeType)
+                return (position, position);
+
+            var start = position;
+            while (start > 0 && sequence[start - 1].TextType == CodeType)
+                start--;
+
+            var end = position;
+            while (end < sequence.Count - 1 && sequence[end + 1].TextType == CodeType)
+                end++;
+
+            return (start, end);
         }
 
         public Task<List<string>> GetProgrammingTopicsAsync() =>

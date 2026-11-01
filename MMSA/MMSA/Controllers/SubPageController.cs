@@ -51,5 +51,16 @@ namespace MMSA.Controllers
                 await _subPageService.DeleteSubPageAsync(subPageId);
                 return Ok();
             });
+
+        [HttpPut("ReorderSubPages")]
+        public Task<IActionResult> ReorderSubPages(int pageId, [FromBody] List<int> subPageIds) =>
+            Handle(async () =>
+            {
+                if (await EnsureCanEditAsync(_courseService.GetAccessForPageAsync(pageId)) is { } denied)
+                    return denied;
+
+                await _subPageService.ReorderSubPagesAsync(pageId, subPageIds);
+                return Ok();
+            });
     }
 }

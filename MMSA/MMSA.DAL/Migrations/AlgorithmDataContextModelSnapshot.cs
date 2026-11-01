@@ -204,6 +204,9 @@ namespace MMSA.DAL.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
                     b.Property<string>("PageName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -535,6 +538,9 @@ namespace MMSA.DAL.Migrations
                         .HasMaxLength(200)
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
 
                     b.Property<int>("PageId")
                         .HasColumnType("int");
