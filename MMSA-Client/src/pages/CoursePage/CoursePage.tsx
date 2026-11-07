@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Result, Skeleton } from "antd";
-import { ArrowRightOutlined, SettingOutlined } from "@ant-design/icons";
+import { Dropdown, MenuProps, Modal, Result, Skeleton } from "antd";
+import {
+  ArrowDownOutlined,
+  ArrowRightOutlined,
+  ArrowUpOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  MoreOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTable } from "../../Store";
-import { flattenTopics, pluralWord, pluralizeTopics, sectionTopics } from "../../course/courseUtils";
+import { flattenTopics, pluralWord, pluralizeTopics, sectionTopics, swapped } from "../../course/courseUtils";
+import { Page } from "../../models/Page";
 import { useCanEditCourse, useLoadCourse } from "../../course/useCourse";
 import MainService from "../../services/mainService";
 import { getErrorMessages } from "../../auth/authApi";
@@ -12,6 +21,19 @@ import AppHeader from "../../components/layout/AppHeader";
 import AppFooter from "../../components/layout/AppFooter";
 import NameModal from "../../components/course/NameModal";
 import CourseEditorModal from "../../components/course/CourseEditorModal";
+
+const sectionActions = (index: number, count: number): NonNullable<MenuProps["items"]> => [
+  { key: "rename", label: "Перейменувати", icon: <EditOutlined /> },
+  ...(count > 1
+    ? [
+        { type: "divider" as const },
+        { key: "up", label: "Перемістити вище", icon: <ArrowUpOutlined />, disabled: index === 0 },
+        { key: "down", label: "Перемістити нижче", icon: <ArrowDownOutlined />, disabled: index === count - 1 },
+      ]
+    : []),
+  { type: "divider" },
+  { key: "delete", label: "Видалити розділ", icon: <DeleteOutlined />, danger: true },
+];
 
 export const CoursePage = () => {
   const { courseSlug = "" } = useParams();
@@ -23,6 +45,8 @@ export const CoursePage = () => {
   const api = useMemo(() => new MainService(), []);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
+  const [renaming, setRenaming] = useState<Page | null>(null);
+  const [modal, modalContextHolder] = Modal.useModal();
 
   const course = state.course?.Slug === courseSlug ? state.course : null;
   const isLoaded = !!course && state.isMenuLoaded;
@@ -51,6 +75,57 @@ export const CoursePage = () => {
       notification("error", getErrorMessages(error)[0]);
       throw error;
     }
+  };
+
+  const renameSection = async (name: string) => {
+    if (!renaming) return;
+    try {
+      await api.RenamePage(renaming.Id, name);
+      await actions.loadMenu();
+      setRenaming(null);
+      notification("success", "Зміни збережено.");
+    } catch (error) {
+      notification("error", getErrorMessages(error)[0]);
+      throw error;
+    }
+  };
+
+  const moveSection = async (index: number, offset: number) => {
+    if (!course) return;
+    try {
+      await api.ReorderPages(course.Id, swapped(state.menu, index, offset).map((page) => page.Id));
+      await actions.loadMenu();
+    } catch (error) {
+      notification("error", getErrorMessages(error)[0]);
+    }
+  };
+
+  const confirmDeleteSection = (page: Page) =>
+    modal.confirm({
+      title: `Видалити розділ «${page.PageName}»?`,
+      content:
+        page.SubPages.length > 0
+          ? `Разом із розділом буде видалено ${pluralizeTopics(page.SubPages.length)} з усіма матеріалами та вправами. Цю дію не можна скасувати.`
+          : "Розділ буде видалено разом з усіма матеріалами та вправами. Цю дію не можна скасувати.",
+      okText: "Видалити",
+      okButtonProps: { danger: true },
+      cancelText: "Скасувати",
+      onOk: async () => {
+        try {
+          await api.DeletePage(page.Id);
+          await actions.loadMenu();
+          notification("success", "Розділ видалено.");
+        } catch (error) {
+          notification("error", getErrorMessages(error)[0]);
+        }
+      },
+    });
+
+  const handleSectionAction = (key: string, page: Page, index: number) => {
+    if (key === "rename") setRenaming(page);
+    if (key === "up") moveSection(index, -1);
+    if (key === "down") moveSection(index, 1);
+    if (key === "delete") confirmDeleteSection(page);
   };
 
   if (state.courseStatus === "notFound" || state.courseStatus === "error") {
@@ -155,8 +230,8 @@ export const CoursePage = () => {
             <div className="cards-grid">
               {state.menu.map((page, index) => {
                 const topics = sectionTopics(courseSlug, page);
-                return (
-                  <Link key={page.Id} to={topics[0].path} className="card section-card">
+                const card = (
+                  <Link to={topics[0].path} className="card section-card">
                     <span className="section-card__badge" aria-hidden="true">{index + 1}</span>
                     <h3 className="section-card__title">{page.PageName}</h3>
                     <p className="section-card__meta">
@@ -166,6 +241,28 @@ export const CoursePage = () => {
                       Відкрити <ArrowRightOutlined />
                     </span>
                   </Link>
+                );
+                if (!isEditing) return <div key={page.Id} className="section-card-wrap">{card}</div>;
+                return (
+                  <div key={page.Id} className="section-card-wrap">
+                    {card}
+                    <Dropdown
+                      trigger={["click"]}
+                      placement="bottomRight"
+                      menu={{
+                        items: sectionActions(index, state.menu.length),
+                        onClick: ({ key }) => handleSectionAction(key, page, index),
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="section-card__menu"
+                        aria-label={`Дії з розділом «${page.PageName}»`}
+                      >
+                        <MoreOutlined />
+                      </button>
+                    </Dropdown>
+                  </div>
                 );
               })}
             </div>
@@ -200,6 +297,16 @@ export const CoursePage = () => {
             onCancel={() => setIsAddSectionOpen(false)}
             onSubmit={addSection}
           />
+          <NameModal
+            open={renaming !== null}
+            title="Перейменувати розділ"
+            label="Назва розділу"
+            okText="Зберегти"
+            initialValue={renaming?.PageName ?? ""}
+            onCancel={() => setRenaming(null)}
+            onSubmit={renameSection}
+          />
+          {modalContextHolder}
         </>
       )}
     </div>

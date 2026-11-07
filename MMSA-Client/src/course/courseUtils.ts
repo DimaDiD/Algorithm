@@ -45,6 +45,12 @@ export const findTopic = (
   return subPage ? toTopic(courseSlug, page, subPage) : undefined;
 };
 
+export const swapped = <T,>(items: T[], index: number, offset: number): T[] => {
+  const next = [...items];
+  [next[index], next[index + offset]] = [next[index + offset], next[index]];
+  return next;
+};
+
 export const pluralWord = (count: number, one: string, few: string, many: string): string => {
   const lastTwo = count % 100;
   const last = count % 10;

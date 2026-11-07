@@ -488,6 +488,39 @@ a:hover {
   gap: 20px;
 }
 
+.section-card-wrap {
+  position: relative;
+  display: flex;
+}
+
+.section-card-wrap > .section-card {
+  flex: 1;
+}
+
+.section-card__menu {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: var(--c-ink);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.section-card__menu:hover,
+.section-card__menu:focus-visible {
+  border-color: var(--c-primary);
+  color: var(--c-primary);
+}
+
 .section-card {
   padding: 28px;
   display: flex;

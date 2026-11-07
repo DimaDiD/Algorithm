@@ -5,7 +5,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { Page } from "../../models/Page";
 import { SubPage } from "../../models/SubPages";
-import { coursePath, Topic, topicPath } from "../../course/courseUtils";
+import { coursePath, swapped, Topic, topicPath } from "../../course/courseUtils";
 import { useCanEditCourse } from "../../course/useCourse";
 import { useTable } from "../../Store";
 import MainService from "../../services/mainService";
@@ -53,12 +53,6 @@ const topicActions = (index: number, count: number): MenuItems => [
   { type: "divider" },
   { key: "delete", label: "Видалити тему", icon: <DeleteOutlined />, danger: true },
 ];
-
-const swapped = <T,>(items: T[], index: number, offset: number) => {
-  const next = [...items];
-  [next[index], next[index + offset]] = [next[index + offset], next[index]];
-  return next;
-};
 
 const CourseNav = ({ courseId, courseSlug, menu, activeTopic, onNavigate }: Props) => {
   const [state, actions] = useTable();
