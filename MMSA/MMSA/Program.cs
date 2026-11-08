@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
@@ -103,27 +104,38 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-    RateLimitPartition.GetTokenBucketLimiter(
-        partitionKey: RateLimitPolicies.GetClientKey(httpContext),
-        factory: _ => new TokenBucketRateLimiterOptions
-        {
-            TokenLimit = 100,
-            TokensPerPeriod = 50,
-            ReplenishmentPeriod = TimeSpan.FromSeconds(10),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
+    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+        PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            RateLimitPartition.GetTokenBucketLimiter(
+                partitionKey: RateLimitPolicies.GetClientKey(httpContext),
+                factory: _ => new TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 100,
+                    TokensPerPeriod = 50,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                })),
+        PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            RateLimitPartition.GetTokenBucketLimiter(
+                partitionKey: RateLimitPolicies.GetIpKey(httpContext),
+                factory: _ => new TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 1500,
+                    TokensPerPeriod = 750,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                })));
 
     options.AddPolicy(RateLimitPolicies.Auth, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: RateLimitPolicies.GetClientKey(httpContext),
+            partitionKey: RateLimitPolicies.GetIpKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = 20,
                 Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0,
-                
+                QueueLimit = 0
             }));
 
     options.AddPolicy(RateLimitPolicies.ExerciseCheck, httpContext =>
@@ -191,6 +203,13 @@ builder.Services.AddHttpClient<IAiReviewService, ClaudeAiReviewService>((service
     client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .WithOrigins(corsOrigins)
@@ -231,21 +250,44 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+        await scope.ServiceProvider.GetRequiredService<AlgorithmDataContext>().Database.MigrateAsync();
+
     await IdentitySeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
 }
+
+var spaFileOptions = new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers.CacheControl = context.Context.Request.Path.StartsWithSegments("/static")
+            ? "public, max-age=31536000, immutable"
+            : "no-cache";
+    }
+};
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(spaFileOptions);
 app.UseRouting();
 app.UseCors();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
+
 app.MapControllers();
+app.MapFallback("api/{**path}", () => Results.NotFound()).AllowAnonymous();
+app.MapFallbackToFile("index.html", spaFileOptions).AllowAnonymous();
 
 app.Run();

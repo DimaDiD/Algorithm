@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>bbecc95a-2c58-4725-92d9-0675b7a8846b</UserSecretsId>
+    <SpaRoot>$(MSBuildProjectDirectory)\..\..\..\Algorithm-client\MMSA-Client\</SpaRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,5 +28,18 @@
   <ItemGroup>
     <ProjectReference Include="..\MMSA.BLL\MMSA.BLL.csproj" />
   </ItemGroup>
+
+  <Target Name="PublishSpa" AfterTargets="ComputeFilesToPublish" Condition="Exists('$(SpaRoot)package.json')">
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    <ItemGroup>
+      <SpaBuildFiles Include="$(SpaRoot)build\**" />
+      <ResolvedFileToPublish Include="@(SpaBuildFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>wwwroot\%(RecursiveDir)%(FileName)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 
 </Project>
