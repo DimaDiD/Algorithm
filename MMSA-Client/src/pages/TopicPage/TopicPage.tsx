@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Drawer, Result, Skeleton } from "antd";
 import { Link, useParams } from "react-router-dom";
 import { coursePath, findTopic, flattenTopics } from "../../course/courseUtils";
-import { useCanEditCourse, useLoadCourse } from "../../course/useCourse";
+import { useCanEditCourse, useCourseLanguages, useLoadCourse } from "../../course/useCourse";
 import AppHeader from "../../components/layout/AppHeader";
 import AppFooter from "../../components/layout/AppFooter";
 import CourseNav from "../../components/course/CourseNav";
-import LanguageSwitch from "../../components/course/LanguageSwitch";
+import LanguageDock from "../../components/course/LanguageDock";
 import TopicContent from "../../components/course/TopicContent";
 import Pager from "../../components/course/Pager";
 import ExerciseSection from "../../components/exercises/ExerciseSection";
@@ -17,6 +17,7 @@ export const TopicPage = () => {
   const { courseSlug = "", page: pageName, subPage: subPageName } = useParams();
   const state = useLoadCourse(courseSlug);
   const canEditCourse = useCanEditCourse();
+  const courseLanguages = useCourseLanguages();
   const [isNavOpen, setIsNavOpen] = useState(false);
 
   const course = state.course?.Slug === courseSlug ? state.course : null;
@@ -27,6 +28,7 @@ export const TopicPage = () => {
     [courseSlug, state.menu, pageName, subPageName]
   );
   const index = topic ? topics.findIndex((item) => item.path === topic.path) : -1;
+  const hasLanguageDock = isLoaded && !!topic && courseLanguages.length > 1;
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -73,7 +75,7 @@ export const TopicPage = () => {
   }
 
   return (
-    <div className="page">
+    <div className={`page${hasLanguageDock ? " page--with-dock" : ""}`}>
       <AppHeader onOpenNavigation={() => setIsNavOpen(true)} courseSlug={courseSlug} showEditToggle={canEditCourse} />
 
       <div className="container topic-layout">
@@ -118,7 +120,6 @@ export const TopicPage = () => {
                       <span className="breadcrumbs__current" aria-current="page">{topic.page.PageName}</span>
                     )}
                   </nav>
-                  <LanguageSwitch />
                 </div>
 
                 <TopicContent key={topic.path} pageId={topic.page.Id} subPageId={topic.subPage?.Id} />
@@ -142,6 +143,8 @@ export const TopicPage = () => {
       >
         {isLoaded && renderNav()}
       </Drawer>
+
+      {hasLanguageDock && <LanguageDock />}
 
       <AppFooter />
     </div>
