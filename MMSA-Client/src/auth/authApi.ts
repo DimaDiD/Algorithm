@@ -25,8 +25,22 @@ export const login = async (email: string, password: string): Promise<void> => {
   broadcastToken(data.AccessToken);
 };
 
-export const register = async (email: string, password: string): Promise<void> => {
-  const { data } = await authClient.post<AccessTokenResponse>("register", { Email: email, Password: password });
+export type RegisterRequest = {
+  email: string;
+  password: string;
+  lastName: string;
+  firstName: string;
+  middleName?: string;
+};
+
+export const register = async (request: RegisterRequest): Promise<void> => {
+  const { data } = await authClient.post<AccessTokenResponse>("register", {
+    Email: request.email,
+    Password: request.password,
+    LastName: request.lastName,
+    FirstName: request.firstName,
+    MiddleName: request.middleName || null,
+  });
   tokenStore.set(data.AccessToken);
   broadcastToken(data.AccessToken);
 };

@@ -3,13 +3,22 @@ import { useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { getErrorMessages } from "../../auth/authApi";
 import notification from "../../notification/notificationMessage";
+import { PERSON_NAME_MAX_LENGTH } from "../../utils/personName";
 
 type Mode = "login" | "register";
 
 type FormValues = {
   email: string;
   password: string;
+  lastName?: string;
+  firstName?: string;
+  middleName?: string;
 };
+
+const requiredName = (message: string) => [
+  { required: true, whitespace: true, message },
+  { max: PERSON_NAME_MAX_LENGTH, message: `Не довше ${PERSON_NAME_MAX_LENGTH} символів` },
+];
 
 type Props = {
   open: boolean;
@@ -38,7 +47,13 @@ const LoginModal = ({ open, onClose }: Props) => {
         await login(values.email, values.password);
         notification("success", "Ви увійшли в систему.");
       } else {
-        await register(values.email, values.password);
+        await register({
+          email: values.email,
+          password: values.password,
+          lastName: values.lastName ?? "",
+          firstName: values.firstName ?? "",
+          middleName: values.middleName,
+        });
         notification("success", "Акаунт створено. Права на редагування надає адміністратор.");
       }
       close();
@@ -78,6 +93,25 @@ const LoginModal = ({ open, onClose }: Props) => {
       )}
 
       <Form form={form} layout="vertical" size="large" onFinish={handleSubmit} requiredMark={false}>
+        {mode === "register" && (
+          <>
+            <Form.Item name="lastName" label="Прізвище" rules={requiredName("Введіть прізвище")}>
+              <Input autoComplete="family-name" />
+            </Form.Item>
+            <Form.Item name="firstName" label="Ім'я" rules={requiredName("Введіть ім'я")}>
+              <Input autoComplete="given-name" />
+            </Form.Item>
+            <Form.Item
+              name="middleName"
+              label="По батькові"
+              extra="Необов'язково"
+              rules={[{ max: PERSON_NAME_MAX_LENGTH, message: `Не довше ${PERSON_NAME_MAX_LENGTH} символів` }]}
+            >
+              <Input autoComplete="additional-name" />
+            </Form.Item>
+          </>
+        )}
+
         <Form.Item
           name="email"
           label="Email"

@@ -17,21 +17,31 @@ public class UserRepository : IUserRepository
     {
         var users = _dataContext.Users.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(search))
+        foreach (var term in SplitTerms(search))
         {
-            var normalized = search.Trim().ToUpperInvariant();
-            users = users.Where(user => user.NormalizedEmail != null && user.NormalizedEmail.Contains(normalized));
+            var upperTerm = term.ToUpperInvariant();
+            users = users.Where(user =>
+                (user.NormalizedEmail != null && user.NormalizedEmail.Contains(upperTerm)) ||
+                (user.LastName != null && user.LastName.Contains(term)) ||
+                (user.FirstName != null && user.FirstName.Contains(term)) ||
+                (user.MiddleName != null && user.MiddleName.Contains(term)));
         }
 
         var total = await users.CountAsync();
 
         var items = await users
-            .OrderBy(user => user.Email)
+            .OrderBy(user => user.LastName == null)
+            .ThenBy(user => user.LastName)
+            .ThenBy(user => user.FirstName)
+            .ThenBy(user => user.Email)
             .Skip(skip)
             .Take(take)
             .Select(user => new UserWithRole(
                 user.Id,
                 user.Email ?? string.Empty,
+                user.LastName,
+                user.FirstName,
+                user.MiddleName,
                 (from userRole in _dataContext.UserRoles
                  join role in _dataContext.Roles on userRole.RoleId equals role.Id
                  where userRole.UserId == user.Id
@@ -41,4 +51,9 @@ public class UserRepository : IUserRepository
 
         return (items, total);
     }
+
+    private static IEnumerable<string> SplitTerms(string? search) =>
+        string.IsNullOrWhiteSpace(search)
+            ? Enumerable.Empty<string>()
+            : search.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(5);
 }

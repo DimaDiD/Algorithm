@@ -4,11 +4,14 @@ import { useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { useTable } from "../../Store";
 import LoginModal from "./LoginModal";
+import ProfileModal from "./ProfileModal";
+import { initials } from "../../utils/personName";
 
 const AuthPanel = () => {
   const { user, isInitialized, logout } = useAuth();
   const [, actions] = useTable();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   if (!isInitialized) return null;
 
@@ -30,13 +33,20 @@ const AuthPanel = () => {
 
   return (
     <>
-      <div className="user-chip">
-        <span className="user-chip__avatar" aria-hidden="true">{user.email.charAt(0)}</span>
-        <span className="user-chip__email">{user.email}</span>
+      <button
+        type="button"
+        className="user-chip user-chip--button"
+        onClick={() => setIsProfileOpen(true)}
+        title="Мій профіль"
+        aria-label={`Мій профіль: ${user.name || user.email}`}
+      >
+        <span className="user-chip__avatar" aria-hidden="true">{initials(user.name, user.email)}</span>
+        <span className="user-chip__email">{user.name || user.email}</span>
         {user.roles.map((role) => (
           <span key={role} className="role-tag">{role}</span>
         ))}
-      </div>
+      </button>
+      <ProfileModal open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <Button size="large" icon={<LogoutOutlined />} onClick={handleLogout} aria-label="Вийти">
         <span className="logout-label">Вийти</span>
       </Button>

@@ -9,6 +9,7 @@ import UserService, { UserListItem, UserPage, UserRole } from "../../services/us
 import notification from "../../notification/notificationMessage";
 import AppHeader from "../../components/layout/AppHeader";
 import AppFooter from "../../components/layout/AppFooter";
+import { fullName } from "../../utils/personName";
 
 const ROLE_OPTIONS: { label: string; value: UserRole; hint: string }[] = [
   { label: "Читач", value: "Reader", hint: "читає курси й виконує завдання" },
@@ -100,14 +101,20 @@ export const AdminUsersPage = () => {
 
   const columns: ColumnsType<UserListItem> = [
     {
-      title: "Email",
-      dataIndex: "Email",
-      render: (email: string, item) => (
-        <span className="users-table__email">
-          {email}
-          {item.IsCurrentUser && <Tag>це ви</Tag>}
-        </span>
-      ),
+      title: "Користувач",
+      key: "user",
+      render: (_, item) => {
+        const name = fullName(item);
+        return (
+          <div className="users-table__person">
+            <span className="users-table__name">
+              {name ?? <span className="users-table__no-name">Ім'я не вказано</span>}
+              {item.IsCurrentUser && <Tag>це ви</Tag>}
+            </span>
+            <span className="users-table__email">{item.Email}</span>
+          </div>
+        );
+      },
     },
     { title: "Курсів", dataIndex: "CourseCount", align: "right", width: 100 },
     {
@@ -166,7 +173,7 @@ export const AdminUsersPage = () => {
 
         <section className="card dashboard__panel">
           <Input.Search
-            placeholder="Пошук за email"
+            placeholder="Пошук за email, прізвищем або ім'ям"
             allowClear
             value={search}
             onChange={(event) => setSearch(event.target.value)}

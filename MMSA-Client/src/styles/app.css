@@ -256,6 +256,20 @@ a:hover {
   border-radius: 12px;
 }
 
+.user-chip--button {
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.user-chip--button:hover,
+.user-chip--button:focus-visible {
+  border-color: var(--c-primary);
+  background: var(--c-primary-softer);
+}
+
 .user-chip__avatar {
   flex: none;
   width: 28px;
@@ -2478,15 +2492,6 @@ a:hover {
   color: var(--c-primary-dark);
 }
 
-.users-table__email {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  color: var(--c-ink);
-}
-
 .btn--danger {
   background: var(--c-danger);
   color: #FFFFFF;
@@ -2712,6 +2717,32 @@ a:hover {
 }
 
 .score-cell__percent {
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+.users-table__person {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.users-table__name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--c-ink);
+}
+
+.users-table__no-name {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--c-muted);
+}
+
+.users-table__email {
   font-size: 13px;
   color: var(--c-muted);
 }
