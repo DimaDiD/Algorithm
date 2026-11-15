@@ -254,7 +254,7 @@ const TopicContent = ({ pageId, subPageId }: Props) => {
               {block.TextType === "Code" ? (
                 <CodeContent code={block.Text} language={block.CodeType} topics={block.Topics} />
               ) : (
-                <TextContent text={block.Text} />
+                <TextContent text={block.Text} language={codeOption} />
               )}
             </BlockErrorBoundary>
           </div>
