@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { APP_VERSION } from "../../config";
 
 const AppFooter = () => (
