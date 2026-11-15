@@ -188,6 +188,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 builder.Services.AddHealthChecks()
@@ -271,8 +272,6 @@ var spaFileOptions = new StaticFileOptions
     }
 };
 
-app.UseForwardedHeaders();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -280,6 +279,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
+    app.UseForwardedHeaders();
     app.UseHsts();
 }
 
