@@ -163,6 +163,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICourseTeacherRepository, CourseTeacherRepository>();
 builder.Services.AddScoped<IPageRepository, PageRepository>();
 builder.Services.AddScoped<ISubPageRepository, SubPageRepository>();
 builder.Services.AddScoped<IPageContentRepository, PageContentRepository>();
@@ -175,6 +176,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ICourseTeacherService, CourseTeacherService>();
 builder.Services.AddScoped<IPageService, PageService>();
 builder.Services.AddScoped<ISubPageService, SubPageService>();
 builder.Services.AddScoped<IPageContentService, PageContentService>();
@@ -183,6 +185,7 @@ builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<ICourseDashboardService, CourseDashboardService>();
 builder.Services.AddSingleton<IHtmlContentSanitizer, HtmlContentSanitizer>();
 builder.Services.AddSingleton<IAuthorizationHandler, CourseOwnerHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, CourseEditorHandler>();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITokenService, TokenService>();

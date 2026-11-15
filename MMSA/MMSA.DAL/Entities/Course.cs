@@ -21,4 +21,6 @@ public class Course
     public virtual ICollection<Page> Pages { get; set; } = new List<Page>();
 
     public virtual ICollection<CourseLanguage> Languages { get; set; } = new List<CourseLanguage>();
+
+    public virtual ICollection<CourseTeacher> Teachers { get; set; } = new List<CourseTeacher>();
 }

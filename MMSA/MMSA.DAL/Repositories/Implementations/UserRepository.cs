@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MMSA.DAL.Entities;
+using MMSA.DAL.Repositories;
 using MMSA.DAL.Repositories.Interfaces;
 
 namespace MMSA.DAL.Repositories.Implementations;
@@ -17,23 +18,12 @@ public class UserRepository : IUserRepository
     {
         var users = _dataContext.Users.AsNoTracking();
 
-        foreach (var term in SplitTerms(search))
-        {
-            var upperTerm = term.ToUpperInvariant();
-            users = users.Where(user =>
-                (user.NormalizedEmail != null && user.NormalizedEmail.Contains(upperTerm)) ||
-                (user.LastName != null && user.LastName.Contains(term)) ||
-                (user.FirstName != null && user.FirstName.Contains(term)) ||
-                (user.MiddleName != null && user.MiddleName.Contains(term)));
-        }
+        users = users.MatchingSearch(search);
 
         var total = await users.CountAsync();
 
         var items = await users
-            .OrderBy(user => user.LastName == null)
-            .ThenBy(user => user.LastName)
-            .ThenBy(user => user.FirstName)
-            .ThenBy(user => user.Email)
+            .OrderByName()
             .Skip(skip)
             .Take(take)
             .Select(user => new UserWithRole(
@@ -46,14 +36,10 @@ public class UserRepository : IUserRepository
                  join role in _dataContext.Roles on userRole.RoleId equals role.Id
                  where userRole.UserId == user.Id
                  select role.Name).FirstOrDefault(),
-                _dataContext.Courses.Count(course => course.OwnerId == user.Id)))
+                _dataContext.Courses.Count(course =>
+                    course.OwnerId == user.Id || course.Teachers.Any(teacher => teacher.UserId == user.Id))))
             .ToListAsync();
 
         return (items, total);
     }
-
-    private static IEnumerable<string> SplitTerms(string? search) =>
-        string.IsNullOrWhiteSpace(search)
-            ? Enumerable.Empty<string>()
-            : search.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(5);
 }

@@ -58,7 +58,7 @@ public class CoursesController : CourseEditingControllerBase
     public Task<IActionResult> Delete(int id) =>
         Handle(async () =>
         {
-            if (await EnsureCanEditAsync(_courseService.GetAccessForCourseAsync(id)) is { } denied)
+            if (await EnsureCanManageAsync(_courseService.GetAccessForCourseAsync(id)) is { } denied)
                 return denied;
 
             await _courseService.DeleteAsync(id);
