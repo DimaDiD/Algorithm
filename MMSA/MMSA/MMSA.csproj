@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>bbecc95a-2c58-4725-92d9-0675b7a8846b</UserSecretsId>
-    <SpaRoot>$(MSBuildProjectDirectory)\..\..\..\Algorithm-client\MMSA-Client\</SpaRoot>
+    <SpaRoot>$(MSBuildProjectDirectory)\..\..\MMSA-Client\</SpaRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,7 +29,8 @@
     <ProjectReference Include="..\MMSA.BLL\MMSA.BLL.csproj" />
   </ItemGroup>
 
-  <Target Name="PublishSpa" AfterTargets="ComputeFilesToPublish" Condition="Exists('$(SpaRoot)package.json')">
+  <Target Name="PublishSpa" AfterTargets="ComputeFilesToPublish">
+    <Error Condition="!Exists('$(SpaRoot)package.json')" Text="Frontend not found at $(SpaRoot). The site would be published without the React app." />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
     <ItemGroup>
