@@ -8,6 +8,7 @@ import { slugify } from "../../course/courseUtils";
 import notification from "../../notification/notificationMessage";
 import { useTable } from "../../Store";
 import CourseLanguagePicker from "./CourseLanguagePicker";
+import CourseTeachersPanel from "./CourseTeachersPanel";
 
 type Props = {
   open: boolean;
@@ -116,7 +117,7 @@ const CourseEditorModal = ({ open, course, onClose, onSaved, onDeleted }: Props)
       destroyOnClose
       footer={
         <div className="course-editor__footer">
-          {isEdit && onDeleted ? (
+          {course?.CanManage && onDeleted ? (
             <Button danger icon={<DeleteOutlined />} onClick={confirmDelete}>
               Видалити курс
             </Button>
@@ -183,11 +184,12 @@ const CourseEditorModal = ({ open, course, onClose, onSaved, onDeleted }: Props)
           name="IsPublished"
           label="Опубліковано"
           valuePropName="checked"
-          extra="Неопублікований курс бачите лише ви та адміністратор."
+          extra="Неопублікований курс бачать лише викладачі курсу та адміністратор."
         >
           <Switch />
         </Form.Item>
       </Form>
+      {course && <CourseTeachersPanel courseId={course.Id} canManage={course.CanManage} />}
       {contextHolder}
     </Modal>
   );
