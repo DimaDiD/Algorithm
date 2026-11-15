@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -9,10 +9,15 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
+
+env:
+  DOTNET_VERSION: 10.0.x
+  NODE_VERSION: 22
+  AZURE_WEBAPP_NAME: mmsa-learn
 
 jobs:
   changes:
@@ -41,7 +46,7 @@ jobs:
   frontend:
     name: Frontend (test & build)
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
+    if: github.event_name != 'pull_request' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -52,7 +57,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: MMSA-Client/package-lock.json
 
@@ -68,10 +73,17 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: MMSA-Client/build
+          retention-days: 7
+
   backend:
     name: Backend (build)
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
+    if: github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -79,7 +91,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - uses: actions/cache@v4
         with:
@@ -92,3 +104,79 @@ jobs:
 
       - name: Build
         run: dotnet build MMSA/MMSA.sln --configuration Release --no-restore
+
+  package:
+    name: Package site
+    needs: [frontend, backend]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('MMSA/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: MMSA-Client/build
+
+      - name: Publish
+        run: >
+          dotnet publish MMSA/MMSA/MMSA.csproj
+          --configuration Release
+          --runtime linux-x64
+          --self-contained false
+          --output ${{ runner.temp }}/site
+          -p:SkipSpaBuild=true
+
+      - name: Upload site package
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: ${{ runner.temp }}/site
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Azure
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download site package
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+
+      - name: Sign in to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to App Service
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: site

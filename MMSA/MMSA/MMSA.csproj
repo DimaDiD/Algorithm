@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>bbecc95a-2c58-4725-92d9-0675b7a8846b</UserSecretsId>
-    <SpaRoot>$(MSBuildProjectDirectory)\..\..\MMSA-Client\</SpaRoot>
+    <SpaRoot>$(MSBuildProjectDirectory)/../../MMSA-Client/</SpaRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,12 +31,13 @@
 
   <Target Name="PublishSpa" AfterTargets="ComputeFilesToPublish">
     <Error Condition="!Exists('$(SpaRoot)package.json')" Text="Frontend not found at $(SpaRoot). The site would be published without the React app." />
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    <Exec Condition="'$(SkipSpaBuild)' != 'true'" WorkingDirectory="$(SpaRoot)" Command="npm ci" />
+    <Exec Condition="'$(SkipSpaBuild)' != 'true'" WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    <Error Condition="!Exists('$(SpaRoot)build/index.html')" Text="Frontend build not found at $(SpaRoot)build. Run 'npm run build' or publish without SkipSpaBuild." />
     <ItemGroup>
-      <SpaBuildFiles Include="$(SpaRoot)build\**" />
+      <SpaBuildFiles Include="$(SpaRoot)build/**" />
       <ResolvedFileToPublish Include="@(SpaBuildFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
-        <RelativePath>wwwroot\%(RecursiveDir)%(FileName)%(Extension)</RelativePath>
+        <RelativePath>wwwroot/%(RecursiveDir)%(FileName)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
