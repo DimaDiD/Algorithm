@@ -313,6 +313,12 @@ a:hover {
   font-size: 17px;
 }
 
+.app-footer__version {
+  font-size: 13px;
+  color: #9A94C4;
+  font-family: "JetBrains Mono", monospace;
+}
+
 .app-footer a {
   color: #C9C4E8;
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -19,6 +20,7 @@ using MMSA.DAL.Constants;
 using MMSA.DAL.Entities;
 using MMSA.DAL.Repositories.Implementations;
 using MMSA.DAL.Repositories.Interfaces;
+using MMSA.Health;
 using MMSA.RateLimiting;
 using MMSA.Seed;
 using MMSA.Swagger;
@@ -188,6 +190,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" }, timeout: TimeSpan.FromSeconds(5));
+
 builder.Services.AddOptions<AiReviewOptions>()
     .Bind(builder.Configuration.GetSection(AiReviewOptions.SectionName))
     .Validate(o => !o.Enabled || !string.IsNullOrWhiteSpace(o.ApiKey), "AiReview:ApiKey is required when AiReview:Enabled is true")
@@ -287,6 +292,19 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = HealthResponseWriter.WriteAsync
+}).AllowAnonymous().DisableRateLimiting();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = HealthResponseWriter.WriteAsync
+}).AllowAnonymous().DisableRateLimiting();
+
 app.MapFallback("api/{**path}", () => Results.NotFound()).AllowAnonymous();
 app.MapFallbackToFile("index.html", spaFileOptions).AllowAnonymous();
 

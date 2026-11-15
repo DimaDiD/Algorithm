@@ -72,6 +72,8 @@ jobs:
 
       - name: Production build
         run: npm run build
+        env:
+          REACT_APP_VERSION: ${{ github.sha }}
 
       - name: Upload frontend build
         uses: actions/upload-artifact@v4
@@ -138,6 +140,7 @@ jobs:
           --self-contained false
           --output ${{ runner.temp }}/site
           -p:SkipSpaBuild=true
+          -p:SourceRevisionId=${{ github.sha }}
 
       - name: Upload site package
         uses: actions/upload-artifact@v4
@@ -180,3 +183,21 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           package: site
+
+      - name: Smoke test
+        env:
+          SITE_URL: ${{ steps.deploy.outputs.webapp-url }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          for attempt in $(seq 1 30); do
+            body=$(curl --silent --show-error --fail --max-time 10 "$SITE_URL/health/ready" || true)
+            if echo "$body" | grep -q "\"commit\":\"$EXPECTED_COMMIT\"" && echo "$body" | grep -q '"status":"Healthy"'; then
+              echo "Site is healthy and runs commit $EXPECTED_COMMIT"
+              echo "$body"
+              exit 0
+            fi
+            echo "Attempt $attempt/30: not ready yet (${body:-no response})"
+            sleep 10
+          done
+          echo "::error::$SITE_URL did not report Healthy with commit $EXPECTED_COMMIT within 5 minutes"
+          exit 1
