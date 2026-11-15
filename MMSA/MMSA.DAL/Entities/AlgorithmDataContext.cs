@@ -32,6 +32,8 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
 
     public virtual DbSet<CourseLanguage> CourseLanguages { get; set; }
 
+    public virtual DbSet<CourseTeacher> CourseTeachers { get; set; }
+
     public virtual DbSet<Submission> Submissions { get; set; }
 
     public virtual DbSet<SubmissionAnswer> SubmissionAnswers { get; set; }
@@ -285,6 +287,27 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
                 new ProgrammingLanguage { Id = 1, Code = "csharp", Name = "C#", HighlightLanguage = "csharp" },
                 new ProgrammingLanguage { Id = 2, Code = "cpp", Name = "C++", HighlightLanguage = "cpp" },
                 new ProgrammingLanguage { Id = 3, Code = "pascal", Name = "Pascal", HighlightLanguage = "delphi" });
+        });
+
+        modelBuilder.Entity<CourseTeacher>(entity =>
+        {
+            entity.ToTable("CourseTeacher");
+
+            entity.HasKey(e => new { e.CourseId, e.UserId });
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.Property(e => e.AddedByUserId).HasMaxLength(450);
+
+            entity.HasOne(e => e.Course)
+                .WithMany(c => c.Teachers)
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<CourseLanguage>(entity =>

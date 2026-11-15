@@ -36,7 +36,9 @@ public sealed class CourseService : ICourseService
     public async Task<List<CourseDTO>> GetMineAsync(CurrentUser user)
     {
         var courses = await _courseRepository.GetWithPageCountAsync(query =>
-            user.IsAdmin ? query : query.Where(course => course.OwnerId == user.Id));
+            user.IsAdmin
+                ? query
+                : query.Where(course => course.OwnerId == user.Id || course.Teachers.Any(teacher => teacher.UserId == user.Id)));
         return courses.Select(course => ToDto(course, user)).ToList();
     }
 
@@ -149,8 +151,15 @@ public sealed class CourseService : ICourseService
             throw new ArgumentException("Адреса курсу: 3–100 символів, латинські літери, цифри та дефіси (наприклад, osnovy-python).");
     }
 
+    private static bool IsOwner(Course course, CurrentUser user) =>
+        user.Id is not null && course.OwnerId == user.Id;
+
     private static bool CanEdit(Course course, CurrentUser user) =>
-        user.IsAdmin || (user.Id is not null && course.OwnerId == user.Id);
+        user.IsAdmin ||
+        (user.IsTeacher && (IsOwner(course, user) || course.Teachers.Any(teacher => teacher.UserId == user.Id)));
+
+    private static bool CanManage(Course course, CurrentUser user) =>
+        user.IsAdmin || (user.IsTeacher && IsOwner(course, user));
 
     private static CourseDTO ToDto(Course course, CurrentUser user) => new()
     {
@@ -160,6 +169,7 @@ public sealed class CourseService : ICourseService
         Description = course.Description,
         IsPublished = course.IsPublished,
         CanEdit = CanEdit(course, user),
+        CanManage = CanManage(course, user),
         SectionCount = course.Pages.Count,
         Languages = course.Languages
             .Where(link => link.ProgrammingLanguage is not null)

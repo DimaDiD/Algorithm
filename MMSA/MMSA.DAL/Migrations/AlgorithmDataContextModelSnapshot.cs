@@ -171,6 +171,28 @@ namespace MMSA.DAL.Migrations
                     b.ToTable("CourseLanguage", (string)null);
                 });
 
+            modelBuilder.Entity("MMSA.DAL.Entities.CourseTeacher", b =>
+                {
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("AddedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AddedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("CourseId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CourseTeacher", (string)null);
+                });
+
             modelBuilder.Entity("MMSA.DAL.Entities.Exercise", b =>
                 {
                     b.Property<int>("Id")
@@ -839,6 +861,25 @@ namespace MMSA.DAL.Migrations
                     b.Navigation("ProgrammingLanguage");
                 });
 
+            modelBuilder.Entity("MMSA.DAL.Entities.CourseTeacher", b =>
+                {
+                    b.HasOne("MMSA.DAL.Entities.Course", "Course")
+                        .WithMany("Teachers")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MMSA.DAL.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("MMSA.DAL.Entities.Page", b =>
                 {
                     b.HasOne("MMSA.DAL.Entities.Course", "Course")
@@ -987,6 +1028,8 @@ namespace MMSA.DAL.Migrations
                     b.Navigation("Languages");
 
                     b.Navigation("Pages");
+
+                    b.Navigation("Teachers");
                 });
 
             modelBuilder.Entity("MMSA.DAL.Entities.Exercise", b =>
