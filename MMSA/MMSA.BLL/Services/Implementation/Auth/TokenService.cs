@@ -39,7 +39,7 @@ namespace MMSA.BLL.Services.Implementation.Auth
                 new(JwtRegisteredClaimNames.Sub, user.Id),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new(JwtRegisteredClaimNames.Email, user.Email ?? String.Empty),
-                new(ClaimType.Name, user.UserName ?? String.Empty)
+                new(ClaimType.Name, PersonNames.ShortName(user) ?? user.Email ?? string.Empty)
             };
 
             claims.AddRange(roles.Select(role => new Claim(ClaimType.Role, role)));

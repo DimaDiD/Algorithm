@@ -45,7 +45,22 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthResult> RegisterAsync(RegisterRequestDTO request)
     {
-        var user = new ApplicationUser { UserName = request.Email, Email = request.Email };
+        var lastName = PersonNames.Normalize(request.LastName);
+        var firstName = PersonNames.Normalize(request.FirstName);
+        var middleName = PersonNames.Normalize(request.MiddleName);
+
+        var nameErrors = PersonNames.Validate(lastName, firstName, middleName);
+        if (nameErrors.Count > 0)
+            return AuthResult.Failure(nameErrors);
+
+        var user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            LastName = lastName,
+            FirstName = firstName,
+            MiddleName = middleName
+        };
 
         await using (var transaction = await _unitOfWork.BeginTransactionAsync())
         {

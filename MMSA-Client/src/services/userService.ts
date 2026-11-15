@@ -5,6 +5,9 @@ export type UserRole = "Admin" | "Teacher" | "Reader";
 export type UserListItem = {
   Id: string;
   Email: string;
+  LastName: string | null;
+  FirstName: string | null;
+  MiddleName: string | null;
   Role: UserRole;
   CourseCount: number;
   IsCurrentUser: boolean;

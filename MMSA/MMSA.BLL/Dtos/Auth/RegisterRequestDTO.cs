@@ -9,5 +9,11 @@ namespace MMSA.BLL.Dtos.Auth
 
         [Required, MaxLength(256)]
         public string Password {  get; set; } = string.Empty;
+
+        public string? LastName { get; set; }
+
+        public string? FirstName { get; set; }
+
+        public string? MiddleName { get; set; }
     }
 }

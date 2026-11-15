@@ -1,6 +1,13 @@
 ﻿namespace MMSA.DAL.Repositories.Interfaces;
 
-public sealed record UserWithRole(string Id, string Email, string? Role, int CourseCount);
+public sealed record UserWithRole(
+    string Id,
+    string Email,
+    string? LastName,
+    string? FirstName,
+    string? MiddleName,
+    string? Role,
+    int CourseCount);
 
 public interface IUserRepository
 {

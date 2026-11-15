@@ -50,6 +50,10 @@ public partial class AlgorithmDataContext : IdentityDbContext<ApplicationUser>
                 .HasDatabaseName("EmailIndex")
                 .IsUnique()
                 .HasFilter("[NormalizedEmail] IS NOT NULL");
+
+            entity.Property(u => u.LastName).HasMaxLength(50);
+            entity.Property(u => u.FirstName).HasMaxLength(50);
+            entity.Property(u => u.MiddleName).HasMaxLength(50);
         });
 
         modelBuilder.Entity<Course>(entity =>

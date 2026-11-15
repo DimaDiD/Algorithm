@@ -38,6 +38,9 @@ public sealed class UserRoleService : IUserRoleService
             {
                 Id = user.Id,
                 Email = user.Email,
+                LastName = user.LastName,
+                FirstName = user.FirstName,
+                MiddleName = user.MiddleName,
                 Role = user.Role ?? Roles.Reader,
                 CourseCount = user.CourseCount,
                 IsCurrentUser = user.Id == currentUserId

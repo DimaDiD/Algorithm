@@ -1,7 +1,7 @@
 import { createContext, FC, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { AuthUser, decodeUser } from "./jwt";
 import { tokenStore } from "./tokenStore";
-import { login, logout, refreshAccessToken, register } from "./authApi";
+import { login, logout, refreshAccessToken, register, RegisterRequest } from "./authApi";
 import { EDITOR_ROLES } from "./roles";
 import { listenToOtherTabs } from "./authSync";
 
@@ -10,7 +10,7 @@ type AuthContextValue = {
   isInitialized: boolean;
   canEdit: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (request: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
 };
 
