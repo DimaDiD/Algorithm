@@ -1,8 +1,17 @@
 import { useMemo } from "react";
 import { sanitizeHtml } from "../utils/sanitizeHtml";
+import { resolveLanguageFragments } from "../utils/languageFragments";
 
-const TextContent = ({ text }: { text: string }) => {
-  const safeHtml = useMemo(() => sanitizeHtml(text), [text]);
+type Props = {
+  text: string;
+  language?: string;
+};
+
+const TextContent = ({ text, language }: Props) => {
+  const safeHtml = useMemo(
+    () => sanitizeHtml(language ? resolveLanguageFragments(text, language) : text),
+    [text, language]
+  );
   return <div className="prose" dangerouslySetInnerHTML={{ __html: safeHtml }} />;
 };
 

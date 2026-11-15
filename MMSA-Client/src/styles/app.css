@@ -1033,6 +1033,42 @@ a:hover {
   border: 1px solid #E0DAFF;
 }
 
+.prose code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--c-primary-softer);
+  border: 1px solid #E0DAFF;
+  color: var(--c-ink);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.prose table {
+  display: block;
+  max-width: 100%;
+  margin: 0 0 1em;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.prose th,
+.prose td {
+  padding: 6px 12px;
+  border: 1px solid var(--c-border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.prose th {
+  background: var(--c-primary-softer);
+  color: var(--c-ink);
+  font-weight: 700;
+}
+
 .content-block {
   position: relative;
   border-radius: 16px;

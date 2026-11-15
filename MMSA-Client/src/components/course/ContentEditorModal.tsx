@@ -4,6 +4,7 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { useCourseLanguages } from "../../course/useCourse";
 import MainService from "../../services/mainService";
+import { LANGUAGE_FRAGMENT_EXAMPLE } from "../../utils/languageFragments";
 
 export type ContentFormValues = {
   Type: "Text" | "Code";
@@ -168,7 +169,16 @@ const ContentEditorModal = ({ open, mode, initialValues, onCancel, onSubmit }: P
           </Form.Item>
         )}
 
-        <Form.Item name="Text" label="Вміст" rules={[{ required: true, message: "Блок не може бути порожнім" }]}>
+        <Form.Item
+          name="Text"
+          label="Вміст"
+          extra={
+            type === "Code"
+              ? undefined
+              : `Щоб у тексті був фрагмент коду для кожної мови окремо, напишіть варіанти поспіль: ${LANGUAGE_FRAGMENT_EXAMPLE}. Учень побачить лише варіант для вибраної мови.`
+          }
+          rules={[{ required: true, message: "Блок не може бути порожнім" }]}
+        >
           {type === "Code" ? (
             <Input.TextArea className="code-textarea" autoSize={{ minRows: 10, maxRows: 24 }} spellCheck={false} />
           ) : (
