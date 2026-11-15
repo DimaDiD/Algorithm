@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
+import { APP_VERSION } from "../../config";
 
 const AppFooter = () => (
   <footer className="app-footer">
@@ -6,6 +7,7 @@ const AppFooter = () => (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <span className="app-footer__title">Основи програмування</span>
         <span>Мультимовна навчальна платформа · {new Date().getFullYear()}</span>
+        <span className="app-footer__version">Версія {APP_VERSION}</span>
       </div>
       <nav aria-label="Посилання у футері" style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center" }}>
         <Link to="/#courses">Каталог курсів</Link>
