@@ -165,6 +165,11 @@ export const CatalogPage = () => {
 
   const sampleLanguage = SAMPLE_CODE[state.codeOption] ? state.codeOption : "csharp";
 
+  const languageCount = useMemo(
+    () => (published ? new Set(published.flatMap((course) => course.Languages.map((language) => language.Code))).size : null),
+    [published]
+  );
+
   return (
     <div className="page">
       <AppHeader />
@@ -188,11 +193,11 @@ export const CatalogPage = () => {
             <div className="hero__stats">
               <div className="stat">
                 <span className="stat__value">{published ? published.length : "…"}</span>
-                <span className="stat__label">курсів</span>
+                <span className="stat__label">{pluralWord(published?.length ?? 0, "курс", "курси", "курсів")}</span>
               </div>
               <div className="stat">
-                <span className="stat__value">{state.languages.length}</span>
-                <span className="stat__label">{pluralWord(state.languages.length, "мова", "мови", "мов")} програмування</span>
+                <span className="stat__value">{languageCount ?? "…"}</span>
+                <span className="stat__label">{pluralWord(languageCount ?? 0, "мова", "мови", "мов")} програмування</span>
               </div>
               <div className="stat">
                 <span className="stat__value">Відкрито</span>
