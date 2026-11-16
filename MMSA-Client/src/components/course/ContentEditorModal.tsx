@@ -5,6 +5,7 @@ import "react-quill/dist/quill.snow.css";
 import { useCourseLanguages } from "../../course/useCourse";
 import MainService from "../../services/mainService";
 import { LANGUAGE_FRAGMENT_EXAMPLE } from "../../utils/languageFragments";
+import { ALL_LANGUAGES, parseVisibility, serializeVisibility } from "../../utils/textVisibility";
 
 export type ContentFormValues = {
   Type: "Text" | "Code";
@@ -66,7 +67,7 @@ const ContentEditorModal = ({ open, mode, initialValues, onCancel, onSubmit }: P
     [courseLanguages]
   );
   const textVisibilityOptions = useMemo(
-    () => [{ label: "Усім мовам", value: "All" }, ...languageOptions],
+    () => [{ label: "Усім мовам", value: ALL_LANGUAGES }, ...languageOptions],
     [languageOptions]
   );
   const api = useMemo(() => new MainService(), []);
@@ -114,10 +115,13 @@ const ContentEditorModal = ({ open, mode, initialValues, onCancel, onSubmit }: P
         onFinish={handleFinish}
         onValuesChange={(changed: Partial<ContentFormValues>) => {
           if (!changed.Type) return;
-          const options = changed.Type === "Code" ? languageOptions : textVisibilityOptions;
-          const current = form.getFieldValue("CodeType");
-          if (!options.some((option) => option.value === current)) {
-            form.setFieldValue("CodeType", options[0].value);
+          const current: string = form.getFieldValue("CodeType") ?? "";
+          if (changed.Type === "Code") {
+            if (!languageOptions.some((option) => option.value === current)) {
+              form.setFieldValue("CodeType", languageOptions[0]?.value);
+            }
+          } else if (parseVisibility(current).length === 0) {
+            form.setFieldValue("CodeType", ALL_LANGUAGES);
           }
         }}
       >
@@ -129,14 +133,27 @@ const ContentEditorModal = ({ open, mode, initialValues, onCancel, onSubmit }: P
             </Radio.Group>
           </Form.Item>
 
-          {type && (
+          {type === "Code" && (
             <Form.Item
               name="CodeType"
-              label={type === "Code" ? "Мова програмування" : "Показувати для"}
+              label="Мова програмування"
               rules={[{ required: true, message: "Оберіть значення" }]}
               style={{ minWidth: 220 }}
             >
-              <Select options={type === "Code" ? languageOptions : textVisibilityOptions} />
+              <Select options={languageOptions} />
+            </Form.Item>
+          )}
+
+          {type === "Text" && (
+            <Form.Item
+              name="CodeType"
+              label="Показувати для"
+              rules={[{ required: true, message: "Оберіть «Усім мовам» або хоча б одну мову" }]}
+              getValueProps={(value?: string) => ({ value: parseVisibility(value) })}
+              normalize={(selected: string[]) => serializeVisibility(selected)}
+              style={{ minWidth: 220, flex: "1 1 320px" }}
+            >
+              <Select mode="multiple" allowClear options={textVisibilityOptions} placeholder="Оберіть мови" />
             </Form.Item>
           )}
         </div>

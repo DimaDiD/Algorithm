@@ -13,6 +13,7 @@ namespace MMSA.BLL.Services.Implementation
         private const string AllLanguages = "All";
         private const int MaxTopicLength = 100;
         private const int MaxTopicsPerBlock = 15;
+        private const int MaxCodeTypeLength = 200;
 
         private readonly IPageContentRepository _pageContentRepository;
         private readonly IProgrammingTopicRepository _programmingTopicRepository;
@@ -35,10 +36,10 @@ namespace MMSA.BLL.Services.Implementation
         {
             var pageContent = subPageId == null
                 ? await _pageContentRepository.GetAllAsync(
-                    x => x.PageId == pageId && (x.CodeType == codeStatus || x.CodeType == "All"),
+                    x => x.PageId == pageId && (x.CodeType == AllLanguages || ("," + x.CodeType + ",").Contains("," + codeStatus + ",")),
                     include: query => query.Include(x => x.Topics))
                 : await _pageContentRepository.GetAllAsync(
-                    x => x.SubPageId == subPageId && (x.CodeType == codeStatus || x.CodeType == "All"),
+                    x => x.SubPageId == subPageId && (x.CodeType == AllLanguages || ("," + x.CodeType + ",").Contains("," + codeStatus + ",")),
                     include: query => query.Include(x => x.Topics));
 
             return _mapper.Map<List<PageContentDTO>>(pageContent.OrderBy(x => x.ContentLocation));
@@ -49,6 +50,7 @@ namespace MMSA.BLL.Services.Implementation
             var topicNames = NormalizeTopics(pageContentDto);
             var pageContent = _mapper.Map<PageContent>(pageContentDto);
             pageContent.Text = SanitizeText(pageContentDto);
+            pageContent.CodeType = NormalizeCodeType(pageContentDto);
 
             var pageContents = await _pageContentRepository.GetAllAsync(x => pageContent.SubPageId == x.SubPageId && 
                 pageContent.PageId  == x.PageId && x.ContentLocation >= pageContent.ContentLocation);
@@ -72,7 +74,7 @@ namespace MMSA.BLL.Services.Implementation
 
             pageContent.Text = SanitizeText(pageContentDto);
             pageContent.TextType = pageContentDto.TextType;
-            pageContent.CodeType = pageContentDto.CodeType;
+            pageContent.CodeType = NormalizeCodeType(pageContentDto);
 
             var topics = await _programmingTopicRepository.GetOrAddByNamesAsync(topicNames);
             pageContent.Topics.Clear();
@@ -108,7 +110,7 @@ namespace MMSA.BLL.Services.Implementation
             var block = sequence.Single(x => x.Id == pageContentId);
 
             var visible = sequence
-                .Where(x => x.Id == block.Id || x.CodeType == codeStatus || x.CodeType == AllLanguages)
+                .Where(x => x.Id == block.Id || IsVisibleFor(x.CodeType, codeStatus))
                 .ToList();
             var index = visible.IndexOf(block);
             var neighbourIndex = direction == MoveDirection.Up ? index - 1 : index + 1;
@@ -152,6 +154,35 @@ namespace MMSA.BLL.Services.Implementation
 
         public Task<List<string>> GetProgrammingTopicsAsync() =>
             _programmingTopicRepository.GetAllNamesAsync();
+
+        private static bool IsVisibleFor(string? codeType, string language) =>
+            codeType == AllLanguages || (codeType ?? string.Empty).Split(',').Contains(language);
+
+        private static string NormalizeCodeType(PageContentDTO pageContent)
+        {
+            var languages = (pageContent.CodeType ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (languages.Length == 0)
+                throw new ArgumentException("Оберіть, для яких мов показувати блок.");
+
+            if (pageContent.TextType == CodeType)
+            {
+                if (languages.Length != 1 || languages[0] == AllLanguages)
+                    throw new ArgumentException("Блок коду має належати одній мові програмування.");
+                return languages[0];
+            }
+
+            if (languages.Contains(AllLanguages))
+                return AllLanguages;
+
+            var codeType = string.Join(",", languages);
+            if (codeType.Length > MaxCodeTypeLength)
+                throw new ArgumentException("Обрано забагато мов.");
+            return codeType;
+        }
 
         private string SanitizeText(PageContentDTO pageContent) =>
             pageContent.TextType == CodeType ? pageContent.Text : _htmlSanitizer.Sanitize(pageContent.Text);

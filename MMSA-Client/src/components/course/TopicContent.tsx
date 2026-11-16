@@ -12,6 +12,7 @@ import CodeContent from "../../PageContentTypes/CodeContent";
 import TextContent from "../../PageContentTypes/TextContent";
 import ContentEditorModal, { ContentFormValues } from "./ContentEditorModal";
 import { BlockErrorBoundary } from "../common/ErrorFallbacks";
+import { ALL_LANGUAGES, isVisibleFor, parseVisibility } from "../../utils/textVisibility";
 
 type Props = {
   pageId: number;
@@ -113,6 +114,11 @@ const TopicContent = ({ pageId, subPageId }: Props) => {
       .forEach((language) => fetchContent(language).catch(() => undefined));
   }, [hasLoaded, fetchContent, languageCodes]);
 
+  const visibilityLabel = (codeType: string) =>
+    parseVisibility(codeType)
+      .map((code) => courseLanguages.find((language) => language.Code === code)?.Name ?? code)
+      .join(", ");
+
   const openAdd = (position: number, type: ContentFormValues["Type"]) =>
     setEditor({
       mode: "add",
@@ -157,6 +163,9 @@ const TopicContent = ({ pageId, subPageId }: Props) => {
           Topics: values.Type === "Code" ? values.Topics ?? [] : [],
         });
         notification("success", "Зміни збережено.");
+      }
+      if (values.Type === "Text" && !isVisibleFor(values.CodeType, codeOption)) {
+        notification("info", `Блок показується лише для: ${visibilityLabel(values.CodeType)}. Для поточної мови його не видно.`);
       }
       setEditor(null);
       await load();
@@ -249,6 +258,9 @@ const TopicContent = ({ pageId, subPageId }: Props) => {
                   Видалити
                 </button>
               </div>
+            )}
+            {isEditing && block.TextType !== "Code" && block.CodeType !== ALL_LANGUAGES && (
+              <span className="block-visibility">Лише для: {visibilityLabel(block.CodeType)}</span>
             )}
             <BlockErrorBoundary resetKey={block}>
               {block.TextType === "Code" ? (
