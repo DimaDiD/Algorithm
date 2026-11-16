@@ -1109,6 +1109,17 @@ a:hover {
   pointer-events: auto;
 }
 
+.block-visibility {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-dark);
+}
+
 .block-toolbar__button {
   min-height: 32px;
   padding: 0 10px;
